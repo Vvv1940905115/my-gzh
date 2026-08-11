@@ -1,0 +1,27 @@
+# 公众号本地凭据，禁止提交
+wechat-config.json
+
+# 本地素材与生成结果
+images/
+references/
+out/
+
+# Python 虚拟环境
+.venv/
+venv/
+env/
+ENV/
+
+# Python 缓存与测试产物
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# 其他可能包含敏感内容的本地文件
+.env
+*.log
+*.key
+*.pem
