@@ -1,6 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Convert article.md into a WeChat-compatible HTML fragment."""
+"""Convert article.md into a polished, WeChat-compatible HTML fragment.
+
+All visual styling is inline so the output survives WeChat's sanitizer
+(which strips <style> blocks and class-based styles inside the article body).
+Supported markdown:
+  - paragraph / lead (first paragraph is auto-styled as a 导语)
+  - # / ## / ### headings (accent bar style)
+  - **bold**, *em*, `code`, ![alt](src), [text](href)
+  - > blockquote (金句 box)
+  - :::card ... :::  and  :::note ... :::  and  :::quote ... :::  containers
+  - 图注：...  line right after an image -> centered caption
+  - - / 1. lists, | tables |, --- divider, @video[path]
+"""
 
 import argparse
 import html
@@ -12,28 +24,86 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
+# ---- Typography palette (WeChat-safe, inline) -------------------------------
 PARAGRAPH_STYLE = (
-    "margin:10px 0; font-size:15px; line-height:1.8; color:#3f3f3f; "
-    "letter-spacing:0; word-break:break-word;"
+    "margin:12px 0; font-size:16px; line-height:1.95; color:#2b2f36; "
+    "letter-spacing:.2px; word-break:break-word; text-align:justify;"
+)
+LEAD_STYLE = (
+    "margin:14px 0 20px; padding:14px 16px; font-size:16px; line-height:1.95; "
+    "color:#1a1d23; font-weight:600; background:#f5f8ff; "
+    "border-left:4px solid #2f6fdb; border-radius:0 8px 8px 0; "
+    "letter-spacing:.2px; text-align:justify;"
 )
 HEADING_STYLES = {
     1: (
-        "margin:26px 0 14px; padding-left:10px; border-left:3px solid #2f6fdb; "
-        "font-size:18px; font-weight:bold; color:#1f2329; line-height:1.5;"
+        "margin:34px 0 16px; padding:8px 0 8px 14px; border-left:5px solid #2f6fdb; "
+        "font-size:20px; font-weight:800; color:#16181d; line-height:1.5; "
+        "background:linear-gradient(90deg,#eef3ff 0%,#ffffff 70%); border-radius:0 6px 6px 0;"
     ),
     2: (
-        "margin:24px 0 12px; padding-left:10px; border-left:3px solid #2f6fdb; "
-        "font-size:17px; font-weight:bold; color:#1f2329; line-height:1.5;"
+        "margin:30px 0 14px; padding:7px 0 7px 13px; border-left:4px solid #2f6fdb; "
+        "font-size:18px; font-weight:800; color:#16181d; line-height:1.5;"
     ),
     3: (
-        "margin:20px 0 10px; font-size:16px; font-weight:bold; color:#1f2329; "
-        "line-height:1.5;"
+        "margin:22px 0 10px; padding-left:11px; border-left:3px solid #9bb4e8; "
+        "font-size:16px; font-weight:700; color:#22262d; line-height:1.5;"
     ),
 }
 BLOCKQUOTE_STYLE = (
-    "margin:14px 0; padding:12px 16px; background:#f5f7fa; "
-    "border-left:3px solid #c9d4e3; border-radius:6px; color:#555f6b; "
-    "font-size:14px; line-height:1.7;"
+    "margin:18px 0; padding:18px 20px 18px 22px; background:#fdf8ee; "
+    "border-left:4px solid #e0a93b; border-radius:10px; color:#5b5232; "
+    "font-size:15px; line-height:1.9; box-shadow:0 2px 10px rgba(224,169,59,.08);"
+)
+BLOCKQUOTE_MARK_STYLE = (
+    "display:block; font-size:30px; line-height:.9; margin-bottom:6px; "
+    "color:#e0a93b; font-family:Georgia,'Times New Roman',serif;"
+)
+CARD_STYLE = (
+    "margin:16px 0; padding:16px 18px; background:#ffffff; "
+    "border:1px solid #eef0f3; border-left:4px solid #2f6fdb; "
+    "border-radius:10px; box-shadow:0 2px 10px rgba(31,35,41,.06);"
+)
+CARD_TITLE_STYLE = (
+    "margin:0 0 8px; font-size:16px; font-weight:800; color:#1f3a6e; line-height:1.6;"
+)
+CARD_LINE_STYLE = (
+    "margin:6px 0; font-size:15px; line-height:1.85; color:#3a4049;"
+)
+NOTE_STYLE = (
+    "margin:18px 0; padding:16px 18px 16px 20px; background:#f6f9ff; "
+    "border-left:4px solid #3b82d9; border-radius:10px; "
+    "font-size:15px; line-height:1.9; color:#37445c; "
+    "box-shadow:0 2px 10px rgba(59,130,217,.06);"
+)
+QUOTE_BOX_STYLE = (
+    "margin:22px 0; padding:22px 24px 22px 26px; "
+    "background:linear-gradient(135deg,#222831 0%,#2c3440 100%); "
+    "border-left:4px solid #e8b53d; border-radius:14px; "
+    "color:#f4f6f9; font-size:16px; font-weight:600; "
+    "line-height:1.85; letter-spacing:.3px; "
+    "box-shadow:0 6px 18px rgba(31,35,41,.18);"
+)
+QUOTE_MARK_STYLE = (
+    "display:block; font-size:34px; line-height:.9; margin-bottom:8px; "
+    "color:#e8b53d; font-family:Georgia,'Times New Roman',serif;"
+)
+HIGHLIGHT_BOX_STYLE = (
+    "margin:24px 0; padding:22px 24px 22px 28px; "
+    "background:linear-gradient(135deg,#f0f7ff 0%,#eaf4fc 50%,#f7fbff 100%); "
+    "border-left:5px solid #2f6fdb; "
+    "border-right:1px solid #d6e5f2; "
+    "border-top:1px solid #d6e5f2; "
+    "border-bottom:1px solid #d6e5f2; "
+    "border-radius:14px; "
+    "box-shadow:0 4px 20px rgba(47,111,219,.09), inset 0 1px 0 rgba(255,255,255,.8);"
+)
+HIGHLIGHT_ICON_STYLE = (
+    "display:inline-block; width:32px; height:32px; line-height:32px; text-align:center; "
+    "background:#2f6fdb; color:#fff; border-radius:8px; font-size:17px; margin-right:12px; vertical-align:middle;"
+)
+HIGHLIGHT_TEXT_STYLE = (
+    "font-size:18px; font-weight:700; color:#1a3a5c; letter-spacing:.5px; line-height:1.7; vertical-align:middle;"
 )
 CODE_BLOCK_STYLE = (
     "margin:14px 0; padding:14px 16px; background:#f6f8fa; border-radius:6px; "
@@ -44,17 +114,30 @@ CODE_INLINE_STYLE = (
     "font-family:Consolas,Menlo,monospace; background:#f2f3f5; padding:2px 5px; "
     "border-radius:4px; font-size:13px; color:#c0392b;"
 )
-IMAGE_WRAP_STYLE = "text-align:center; margin:16px 0;"
+IMAGE_WRAP_STYLE = "text-align:center; margin:18px 0;"
 IMAGE_STYLE = (
     "width:100%; max-width:1080px; display:block; margin:0 auto; "
-    "border-radius:6px;"
+    "border-radius:10px; box-shadow:0 2px 12px rgba(31,35,41,.08);"
+)
+CAPTION_STYLE = (
+    "margin:8px 0 18px; font-size:13px; line-height:1.6; color:#9aa1ab; "
+    "text-align:center; letter-spacing:.3px;"
+)
+VIDEO_STYLE = (
+    "margin:16px 0; padding:18px 14px; background:#f6f8fa; "
+    "border:1px dashed #d8dee6; border-radius:6px; text-align:center; "
+    "color:#8a919f; font-size:14px; line-height:1.7;"
 )
 LINK_STYLE = "color:#2f6fdb; text-decoration:none;"
 TABLE_STYLE = "width:100%; border-collapse:collapse; margin:16px 0; font-size:14px;"
 TD_STYLE = "border:1px solid #d8dee6; padding:8px 10px; line-height:1.6;"
 FOOTER_STYLE = (
-    "margin:28px 0 0; padding-top:14px; border-top:1px solid #e8eaed; "
-    "color:#8a919f; font-size:13px; text-align:center; line-height:1.7;"
+    "margin:30px 0 0; padding-top:16px; border-top:1px solid #e8eaed; "
+    "color:#8a919f; font-size:13px; text-align:center; line-height:1.8;"
+)
+TAG_STYLE = (
+    "display:inline-block; margin:4px 4px 0 0; padding:3px 10px; "
+    "background:#eef3ff; color:#2f6fdb; border-radius:20px; font-size:12px;"
 )
 
 TOKEN_RE = re.compile(
@@ -141,6 +224,20 @@ def parse_blocks(lines):
             index += 1
             continue
 
+        # Fenced container: :::card / :::note / :::quote ... :::
+        container = re.fullmatch(r":::(\w+)", stripped)
+        if container:
+            flush_paragraph()
+            kind = container.group(1)
+            body = []
+            index += 1
+            while index < len(lines) and lines[index].strip() != ":::":
+                body.append(lines[index].rstrip("\n"))
+                index += 1
+            index += 1  # skip closing :::
+            blocks.append(("container", (kind, body)))
+            continue
+
         if stripped.startswith("```"):
             flush_paragraph()
             code_lines = []
@@ -169,6 +266,13 @@ def parse_blocks(lines):
             blocks.append(("quote", quote_lines))
             continue
 
+        caption = re.match(r"^图注[：:]\s*(.*)$", stripped)
+        if caption:
+            flush_paragraph()
+            blocks.append(("caption", caption.group(1).strip()))
+            index += 1
+            continue
+
         if stripped.startswith("|"):
             next_line = lines[index + 1].strip() if index + 1 < len(lines) else ""
             if re.match(r"^\|?[\s:|-]+\|?$", next_line) and "-" in next_line:
@@ -180,6 +284,13 @@ def parse_blocks(lines):
                     index += 1
                 blocks.append(("table", (header_cells, rows)))
                 continue
+
+        video = re.fullmatch(r"@video\[([^\]]+)\]", stripped)
+        if video:
+            flush_paragraph()
+            blocks.append(("video", video.group(1).strip()))
+            index += 1
+            continue
 
         unordered = re.match(r"^\s*[-*]\s+(.*)$", line)
         ordered = re.match(r"^\s*\d+\.\s+(.*)$", line)
@@ -210,13 +321,48 @@ def parse_blocks(lines):
     return blocks
 
 
+def render_container(kind, body, image_map):
+    if kind == "highlight":
+        text = "<br>".join(render_inline(line, image_map) for line in body)
+        icon = f'<span style="{HIGHLIGHT_ICON_STYLE}">⚡</span>'
+        return (
+            f'<div style="{HIGHLIGHT_BOX_STYLE}">'
+            f'{icon}<span style="{HIGHLIGHT_TEXT_STYLE}">{text}</span>'
+            f'</div>'
+        )
+    if kind == "quote":
+        inner = "<br>".join(render_inline(line, image_map) for line in body)
+        mark = f'<span style="{QUOTE_MARK_STYLE}">“</span>'
+        return f'<div style="{QUOTE_BOX_STYLE}">{mark}{inner}</div>'
+    if kind == "note":
+        inner = "<br>".join(render_inline(line, image_map) for line in body)
+        return f'<div style="{NOTE_STYLE}">{inner}</div>'
+    if kind == "card":
+        pieces = []
+        for i, line in enumerate(body):
+            if i == 0 and line.strip().startswith("**"):
+                text = render_inline(line.strip()[2:-2], image_map)
+                pieces.append(f'<p style="{CARD_TITLE_STYLE}">{text}</p>')
+            else:
+                text = render_inline(line, image_map)
+                pieces.append(f'<p style="{CARD_LINE_STYLE}">{text}</p>')
+        return f'<div style="{CARD_STYLE}">{"".join(pieces)}</div>'
+    # generic fallback
+    inner = "<br>".join(render_inline(line, image_map) for line in body)
+    return f'<div style="{NOTE_STYLE}">{inner}</div>'
+
+
 def render_blocks(blocks, image_map):
     rendered = []
+    emitted_paragraph = False
     for kind, payload in blocks:
         if kind == "paragraph":
             inline = render_inline("<br>".join(payload), image_map)
             if re.fullmatch(r"<img [^>]+ />", inline):
                 rendered.append(f'<p style="{IMAGE_WRAP_STYLE}">{inline}</p>')
+            elif not emitted_paragraph:
+                rendered.append(f'<p style="{LEAD_STYLE}">{inline}</p>')
+                emitted_paragraph = True
             else:
                 rendered.append(f'<p style="{PARAGRAPH_STYLE}">{inline}</p>')
         elif kind.startswith("heading"):
@@ -225,10 +371,16 @@ def render_blocks(blocks, image_map):
             rendered.append(f'<p style="{HEADING_STYLES[level]}">{inline}</p>')
         elif kind == "quote":
             inner = "<br>".join(render_inline(line, image_map) for line in payload)
-            rendered.append(f'<blockquote style="{BLOCKQUOTE_STYLE}">{inner}</blockquote>')
+            mark = f'<span style="{BLOCKQUOTE_MARK_STYLE}">“</span>'
+            rendered.append(f'<blockquote style="{BLOCKQUOTE_STYLE}">{mark}{inner}</blockquote>')
+        elif kind == "container":
+            kind_name, body = payload
+            rendered.append(render_container(kind_name, body, image_map))
         elif kind == "code":
             inner = "<br>".join(html.escape(line) for line in payload)
             rendered.append(f'<p style="{CODE_BLOCK_STYLE}">{inner}</p>')
+        elif kind == "caption":
+            rendered.append(f'<p style="{CAPTION_STYLE}">{render_inline(payload, image_map)}</p>')
         elif kind == "table":
             header_cells, rows = payload
             header_html = "".join(
@@ -247,25 +399,38 @@ def render_blocks(blocks, image_map):
             for index, item in enumerate(payload, start=1):
                 prefix = f"{index}. " if kind == "ordered" else "• "
                 item_style = (
-                    "margin:6px 0 6px 20px; font-size:15px; line-height:1.8; "
-                    "color:#3f3f3f;"
+                    "margin:8px 0 8px 22px; font-size:16px; line-height:1.9; "
+                    "color:#2b2f36; text-align:justify;"
                 )
                 rendered.append(
                     f'<p style="{item_style}">{prefix}{render_inline(item, image_map)}</p>'
                 )
+        elif kind == "video":
+            src = html.escape(payload, quote=True)
+            rendered.append(
+                f'<div class="wechat-video" data-video-src="{src}" '
+                f'style="{VIDEO_STYLE}">文末视频占位：{src}</div>'
+            )
         elif kind == "hr":
-            rendered.append('<p style="margin:20px 0; border-top:1px solid #e5e7eb;"></p>')
+            rendered.append('<p style="margin:28px 0; border-top:1px solid #eceef1;"></p>')
     return "\n".join(rendered)
 
 
 def render_footer(meta):
+    tags = meta.get("tags") or []
+    if isinstance(tags, str):
+        tags = [tags]
+    tag_html = "".join(f'<span style="{TAG_STYLE}">#{html.escape(t)}</span>' for t in tags)
     author = str(meta.get("author", "")).strip()
     source = str(meta.get("source", "")).strip()
-    parts = [part for part in (author, source) if part]
-    if not parts:
-        return ""
-    text = "作者 / 来源：" + " / ".join(parts)
-    return f'<p style="{FOOTER_STYLE}">{html.escape(text)}</p>'
+    meta_parts = [part for part in (author, source) if part]
+    lines = []
+    if tag_html:
+        lines.append(f'<p style="{FOOTER_STYLE}">{tag_html}</p>')
+    if meta_parts:
+        text = "作者 / 来源：" + " / ".join(html.escape(p) for p in meta_parts)
+        lines.append(f'<p style="{FOOTER_STYLE}">{text}</p>')
+    return "\n".join(lines)
 
 
 def make_local_srcs_relative(content, out_dir):

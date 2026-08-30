@@ -89,11 +89,19 @@ def post_json(url, payload):
 def post_file(url, file_path):
     boundary = "----CodexWechatBoundary" + uuid.uuid4().hex
     file_path = Path(file_path)
+    ext = file_path.suffix.lower()
+    mime = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".webp": "image/webp",
+    }.get(ext, "image/png")
     parts = [
         (
             f"--{boundary}\r\n"
             f'Content-Disposition: form-data; name="media"; filename="{file_path.name}"\r\n'
-            "Content-Type: image/png\r\n\r\n"
+            f"Content-Type: {mime}\r\n\r\n"
         ).encode("utf-8"),
         file_path.read_bytes(),
         b"\r\n",
@@ -108,6 +116,80 @@ def post_file(url, file_path):
         data = json.loads(response.read().decode("utf-8"))
     check_error(data)
     return data
+
+
+def post_video_file(url, file_path, title, introduction):
+    boundary = "----CodexWechatBoundary" + uuid.uuid4().hex
+    file_path = Path(file_path)
+    description = json.dumps(
+        {"title": title, "introduction": introduction}, ensure_ascii=False
+    )
+    parts = [
+        (
+            f"--{boundary}\r\n"
+            'Content-Disposition: form-data; name="description"\r\n\r\n'
+            f"{description}\r\n"
+        ).encode("utf-8"),
+        (
+            f"--{boundary}\r\n"
+            f'Content-Disposition: form-data; name="media"; filename="{file_path.name}"\r\n'
+            "Content-Type: video/mp4\r\n\r\n"
+        ).encode("utf-8"),
+        file_path.read_bytes(),
+        b"\r\n",
+        f"--{boundary}--\r\n".encode("utf-8"),
+    ]
+    request = urllib.request.Request(
+        url,
+        data=b"".join(parts),
+        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+    )
+    with urllib.request.urlopen(request, timeout=180) as response:
+        data = json.loads(response.read().decode("utf-8"))
+    check_error(data)
+    return data
+
+
+def upload_video(token, video_path, title="", introduction=""):
+    url = f"{WECHAT_API}/cgi-bin/material/add_material?type=video&access_token={token}"
+    data = post_video_file(url, video_path, title, introduction)
+    media_id = data.get("media_id")
+    if not media_id:
+        raise RuntimeError("Video media_id was not returned.")
+    return media_id
+
+
+def get_video_vid(token, media_id):
+    data = post_json(
+        f"{WECHAT_API}/cgi-bin/material/get_material?access_token={token}",
+        {"media_id": media_id},
+    )
+    vid = str(data.get("vid", "")).strip()
+    cover_url = str(data.get("cover_url", "") or "").strip()
+    if vid:
+        return vid, cover_url
+    batch = post_json(
+        f"{WECHAT_API}/cgi-bin/material/batchget_material?access_token={token}",
+        {"type": "video", "offset": 0, "count": 20},
+    )
+    for item in batch.get("item", []):
+        if item.get("media_id") == media_id:
+            return (
+                str(item.get("vid", "")).strip(),
+                str(item.get("cover_url", "") or "").strip(),
+            )
+    return "", ""
+
+
+def build_video_iframe(vid, cover_url=""):
+    cover_attr = f" data-cover='{cover_url}'" if cover_url else ""
+    return (
+        f"<iframe class='video_iframe rich_pages' data-vidtype='2' "
+        f"data-mpvid='{vid}'{cover_attr} allowfullscreen='' frameborder='0' "
+        f"style='z-index:1;height:320px;' data-w='1920' "
+        f"data-src='https://mp.weixin.qq.com/mp/readtemplate?t=pages/"
+        f"video_player_tmpl&action=mpvideo&auto=0&vid={vid}'></iframe>"
+    )
 
 
 def get_access_token(config):
@@ -225,6 +307,8 @@ def main():
     article_text = (ROOT / "article.md").read_text(encoding="utf-8")
     meta = json.loads((ROOT / "meta.json").read_text(encoding="utf-8"))
     images = extract_images(article_text, meta.get("cover", ""))
+    video_match = re.search(r"@video\[([^\]]+)\]", article_text)
+    video_path = video_match.group(1).strip() if video_match else None
     if not images:
         raise SystemExit("No local images found to upload.")
 
@@ -246,6 +330,47 @@ def main():
 
     print("Rendering final article content...")
     content, meta = render_content(image_map)
+
+    video_media_id = None
+    video_iframe = None
+    configured_vid = str(meta.get("video_vid", "")).strip()
+    if video_path:
+        full_video = ROOT / video_path
+        if not full_video.exists():
+            raise SystemExit(f"Video file not found: {full_video}")
+        if configured_vid:
+            vid = configured_vid
+            cover_url = ""
+            print(f"Using configured video vid: {vid}")
+        else:
+            print(f"Uploading video: {full_video}")
+            video_media_id = upload_video(
+                token,
+                full_video,
+                title=meta.get("title", "公众号视频"),
+                introduction=meta.get("summary", ""),
+            )
+            print(f"Video media_id: {video_media_id}")
+            vid, cover_url = get_video_vid(token, video_media_id)
+            print(f"Video vid: {vid or '(none)'}")
+        if vid and not vid.startswith("apiv_"):
+            video_iframe = build_video_iframe(vid, cover_url)
+
+    video_placeholder_re = re.compile(
+        r'<div class="wechat-video" data-video-src="([^"]*)"[^>]*>.*?</div>',
+        re.S,
+    )
+    if video_path and video_iframe:
+        content = video_placeholder_re.sub(video_iframe, content)
+    elif video_path:
+        content = video_placeholder_re.sub(
+            '<p style="margin:16px 0;padding:14px 16px;background:#fff7e6;'
+            'border:1px solid #ffd591;border-radius:6px;font-size:14px;'
+            'line-height:1.7;color:#8c5a10;">文末视频已上传素材库，'
+            '请在公众号后台插入该视频后保存草稿。</p>',
+            content,
+        )
+
     local_left = re.findall(r'src="((?!https?://|//|data:)[^"]+)"', content)
     if local_left:
         raise SystemExit(f"Some images were not replaced with WeChat URLs: {local_left}")

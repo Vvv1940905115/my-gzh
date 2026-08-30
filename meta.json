@@ -1,7 +1,8 @@
 {
-  "title": "Win 11 上我用 Codex 做自动化剪辑，流程分享给你",
-  "summary": "在 Win 11 上让 Codex 帮我写脚本、跑剪辑流水线的完整记录：手动剪辑的痛点、工具链、固定流程、翻车现场和新手避坑清单。",
+  "title": "Anthropic 发布 MHS：给 AI Agent 一把打开物理世界的钥匙",
+  "summary": "MCP 让 AI 连软件，MHS 让 AI 连硬件。Anthropic 的模型硬件标准把 Coding Agent 和具身智能接上同一条总线，QuEra 实测接管激光系统成功率 99.3%。",
   "author": "精神小哥的思绪",
   "source": "公众号：精神小哥的思绪",
-  "cover": "images/cover.png"
+  "cover": "images/real_ai.jpg",
+  "tags": ["Anthropic", "MHS", "AI coding", "具身智能", "MCP"]
 }
