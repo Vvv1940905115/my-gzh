@@ -242,23 +242,51 @@ def upload_body_image(token, image_path):
     return url
 
 
-def render_content(image_map):
-    meta = json.loads((ROOT / "meta.json").read_text(encoding="utf-8"))
-    blocks = parse_blocks((ROOT / "article.md").read_text(encoding="utf-8").splitlines())
+def resolve_path(raw, default_name=None):
+    """Resolve a user-supplied path: absolute as-is, else CWD, else project root."""
+    path = Path(raw) if raw else ROOT / default_name
+    if not path.is_absolute() and not path.exists() and (ROOT / path).exists():
+        path = ROOT / path
+    return path
+
+
+def default_meta_for(article_path):
+    """Infer the matching meta file: article-foo.md -> meta-foo.json."""
+    path = Path(article_path)
+    if path.name == "article.md":
+        return path.with_name("meta.json")
+    if path.name.startswith("article"):
+        return path.with_name("meta" + path.stem[len("article") :] + ".json")
+    return path.with_name("meta.json")
+
+
+def draft_id_path(article_path):
+    """One draft-id file per article, so switching articles never overwrites another."""
+    stem = Path(article_path).stem
+    if stem == "article":
+        return ROOT / "out" / "last-draft-id.txt"
+    return ROOT / "out" / f"last-draft-id-{stem}.txt"
+
+
+def render_content(image_map, article_path=None, meta_path=None):
+    meta_file = Path(meta_path) if meta_path else ROOT / "meta.json"
+    article_file = Path(article_path) if article_path else ROOT / "article.md"
+    meta = json.loads(meta_file.read_text(encoding="utf-8"))
+    blocks = parse_blocks(article_file.read_text(encoding="utf-8").splitlines())
     content = render_blocks(blocks, image_map)
     content += "\n" + render_footer(meta)
     return make_local_srcs_relative(content, ROOT / "out"), meta
 
 
-def read_last_draft_id():
-    path = ROOT / "out" / "last-draft-id.txt"
+def read_last_draft_id(path=None):
+    path = path or ROOT / "out" / "last-draft-id.txt"
     if path.exists():
         return path.read_text(encoding="utf-8").strip()
     return None
 
 
-def save_last_draft_id(media_id):
-    path = ROOT / "out" / "last-draft-id.txt"
+def save_last_draft_id(media_id, path=None):
+    path = path or ROOT / "out" / "last-draft-id.txt"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(media_id, encoding="utf-8")
 
@@ -276,12 +304,33 @@ def delete_draft(token, media_id):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Push the article to WeChat draft box")
+    parser = argparse.ArgumentParser(
+        description="Push an article to the WeChat draft box"
+    )
     parser.add_argument("--config", default=None)
+    parser.add_argument(
+        "--article",
+        default=None,
+        help="Markdown file to push (default: article.md). Meta file is inferred.",
+    )
+    parser.add_argument(
+        "--meta",
+        default=None,
+        help="Meta JSON file (default: meta.json, or inferred from --article).",
+    )
     parser.add_argument("--draft-media-id", default=None)
     parser.add_argument("--new-draft", action="store_true", help="Create a new draft instead of updating the last one.")
     parser.add_argument("--delete-draft-id", default=None)
     args = parser.parse_args()
+
+    article_file = resolve_path(args.article, "article.md")
+    meta_file = resolve_path(args.meta) if args.meta else default_meta_for(article_file)
+    if not article_file.exists():
+        raise SystemExit(f"Article file not found: {article_file}")
+    if not meta_file.exists():
+        raise SystemExit(f"Meta file not found: {meta_file}")
+    id_file = draft_id_path(article_file)
+    out_stem = article_file.stem
 
     if args.config:
         custom = Path(args.config)
@@ -304,8 +353,10 @@ def main():
     else:
         config = load_config()
 
-    article_text = (ROOT / "article.md").read_text(encoding="utf-8")
-    meta = json.loads((ROOT / "meta.json").read_text(encoding="utf-8"))
+    print(f"Article: {article_file}")
+    print(f"Meta:    {meta_file}")
+    article_text = article_file.read_text(encoding="utf-8")
+    meta = json.loads(meta_file.read_text(encoding="utf-8"))
     images = extract_images(article_text, meta.get("cover", ""))
     video_match = re.search(r"@video\[([^\]]+)\]", article_text)
     video_path = video_match.group(1).strip() if video_match else None
@@ -327,7 +378,7 @@ def main():
         image_map[path] = upload_body_image(token, full_path)
 
     print("Rendering final article content...")
-    content, meta = render_content(image_map)
+    content, meta = render_content(image_map, article_file, meta_file)
 
     video_media_id = None
     video_iframe = None
@@ -386,13 +437,13 @@ def main():
 
     draft_id = args.draft_media_id
     if draft_id is None and not args.new_draft:
-        draft_id = read_last_draft_id()
+        draft_id = read_last_draft_id(id_file)
 
     if draft_id:
         print("Updating existing draft...")
         update_draft(token, draft_id, article_payload)
         media_id = draft_id
-        save_last_draft_id(media_id)
+        save_last_draft_id(media_id, id_file)
     else:
         print("Pushing new draft...")
         draft = post_json(
@@ -402,21 +453,24 @@ def main():
         media_id = draft.get("media_id")
         if not media_id:
             raise RuntimeError("Draft media_id was not returned.")
-        save_last_draft_id(media_id)
+        save_last_draft_id(media_id, id_file)
+        print(f"Draft id file: {id_file}")
 
     if args.delete_draft_id:
         print(f"Deleting duplicate draft: {args.delete_draft_id}")
         delete_draft(token, args.delete_draft_id)
 
-    (ROOT / "out" / "article.wechat.uploaded.html").write_text(
+    out_dir = ROOT / "out"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / f"{out_stem}.wechat.uploaded.html").write_text(
         build_preview(meta.get("title", ""), content, []),
         encoding="utf-8",
     )
-    (ROOT / "out" / "article.wechat.html").write_text(
+    (out_dir / f"{out_stem}.wechat.html").write_text(
         build_preview(meta.get("title", ""), content, []),
         encoding="utf-8",
     )
-    (ROOT / "out" / "article.wechat.fragment.html").write_text(
+    (out_dir / f"{out_stem}.wechat.fragment.html").write_text(
         content + "\n",
         encoding="utf-8",
     )

@@ -66,7 +66,9 @@ my-gzh/
     ├── article.wechat.html       # 本地预览页，可点「复制正文」
     ├── article.wechat.fragment.html  # 纯片段 HTML（供程序二次处理）
     ├── article.wechat.uploaded.html  # 推送成功后的最终页
-    └── last-draft-id.txt         # 记录上次草稿 media_id，用于自动更新
+    ├── article-ai-desktop-workflow.wechat.html  # 备选稿的预览页（按稿件名输出）
+    ├── last-draft-id.txt         # 主稿的草稿 media_id，用于自动更新
+    └── last-draft-id-<稿件名>.txt # 其它稿件各自的草稿 ID（互不覆盖）
 ```
 
 > ⚠️ `images/`、`references/`、`out/`、`wechat-config.json` 以及 `*.bak*` 备份、`.edge-tmp*/` 临时目录都在 `.gitignore` 里，**不会提交到仓库**。克隆到新机器后，这些目录需要本地重新生成或配置（详见下文）。
@@ -368,25 +370,34 @@ article-ai-desktop-workflow.md  + meta-ai-desktop-workflow.json   # 备选稿
 zhihu_article.md                                                  # 同一选题的知乎版
 ```
 
-- `md_to_wechat.py` 支持 `--article` / `--meta` / `--out` 参数，**可直接指定任意一篇**：
+- **两个脚本都支持 `--article`**，直接指定任意一篇，不用再手工替换入口文件：
 
   ```text
+  # 预览备选稿
   python tools/md_to_wechat.py --article article-ai-desktop-workflow.md \
          --meta meta-ai-desktop-workflow.json \
          --out out/article-ai-desktop-workflow.wechat.html
+
+  # 推送备选稿（meta 会自动推断为 meta-ai-desktop-workflow.json）
+  python tools/push_wechat_draft.py --article article-ai-desktop-workflow.md
   ```
 
-- `push_wechat_draft.py` 目前**固定读取根目录的 `article.md` 与 `meta.json`**（没有 `--article` 参数）。推送备选稿的标准做法是：先把备选稿备份并替换成入口文件，推完再换回来：
+**自动推断规则（不用记参数）：**
+
+| 传入 | 自动得到 |
+| --- | --- |
+| `--article article-foo.md` | meta → `meta-foo.json`；草稿 ID → `out/last-draft-id-article-foo.txt`；预览 → `out/article-foo.wechat.html` |
+| 不传（默认） | `article.md` → `meta.json` → `out/last-draft-id.txt` → `out/article.wechat.html` |
+
+也就是说**每篇稿子有自己独立的草稿 ID 文件**，来回切换推送不会互相覆盖；`--new-draft` 只在这篇稿子第一次推送时（或你想另起一篇时）才需要加。
+
+- 想显式指定 meta（文件名不符合 `article-*` / `meta-*` 配对时）：
 
   ```text
-  cp article.md article.md.bak && cp meta.json meta.json.bak
-  cp article-ai-desktop-workflow.md article.md
-  cp meta-ai-desktop-workflow.json meta.json
-  python tools/push_wechat_draft.py --new-draft     # 新稿件用 --new-draft，别覆盖上一篇的记录
-  cp article.md.bak article.md && cp meta.json.bak meta.json
+  python tools/push_wechat_draft.py --article zhihu.md --meta meta-robot.json
   ```
 
-  > `out/last-draft-id.txt` 只有一份，**切换文章推送时务必加 `--new-draft`**，否则会用上一篇的 `media_id` 把旧草稿覆盖掉。`*.bak` 已在 `.gitignore` 里，不会误提交。
+- 路径支持绝对路径，相对路径会先按当前目录找、找不到再回退到项目根目录；文件不存在会直接报 `Article file not found: xxx`，不会走到网络请求。
 
 ---
 
@@ -451,26 +462,30 @@ python tools/md_to_wechat.py --article article.md --meta meta.json \
 适合已配好 AppID / AppSecret / IP 白名单的情况。
 
 ```text
-python tools/push_wechat_draft.py
+python tools/push_wechat_draft.py                                  # 推送主稿 article.md
+python tools/push_wechat_draft.py --article article-foo.md         # 推送指定稿件
 ```
 
 脚本依次执行：
 
-1. 在配置的 `.json` 里读取凭据，调用接口拿 `access_token`。
-2. 把 `meta.json` 里 `cover` 指向的封面作为永久素材上传，拿到 `thumb_media_id`。
-3. 遍历 `article.md` 里所有本地图片，通过 `media/uploadimg` 上传，拿到 `https://mmbiz.qpic.cn/...` 链接并替换正文路径。
-4. 若正文有 `@video[...]`，上传视频并生成公众号视频 iframe（或读取 `meta.json` 的 `video_vid`）。
-5. 调用草稿接口，把标题、摘要、作者、正文、封面同步到草稿箱。
-6. 把草稿 `media_id` 写入 `out/last-draft-id.txt`。
+1. 解析稿件：`--article` 指定的 Markdown（默认 `article.md`），并推断/读取对应 meta。
+2. 在配置的 `.json` 里读取凭据，调用接口拿 `access_token`。
+3. 把 meta 里 `cover` 指向的封面作为永久素材上传，拿到 `thumb_media_id`。
+4. 遍历正文里所有本地图片，通过 `media/uploadimg` 上传，拿到 `https://mmbiz.qpic.cn/...` 链接并替换正文路径。
+5. 若正文有 `@video[...]`，上传视频并生成公众号视频 iframe（或读取 meta 的 `video_vid`）。
+6. 调用草稿接口，把标题、摘要、作者、正文、封面同步到草稿箱。
+7. 把草稿 `media_id` 写入该稿件专属的 ID 文件（`out/last-draft-id.txt` 或 `out/last-draft-id-<稿件名>.txt`），并生成 `out/<稿件名>.wechat.html` 等预览文件。
 
-**草稿更新策略：**
+**草稿更新策略（按稿件独立记录）：**
 
-- 第一次运行：新建草稿，并记录 `media_id`。
-- 之后再运行：读取 `out/last-draft-id.txt`，**自动更新同一篇草稿**，不会重复建草稿。
-- 想强制新建一篇：
+- 每篇稿子一个 ID 文件：主稿 `out/last-draft-id.txt`，`article-foo.md` → `out/last-draft-id-article-foo.txt`。切换稿件推送**不会互相覆盖**。
+- 第一次推送某篇：新建草稿并记录 `media_id`。
+- 之后再推同一篇：读取该稿件的 ID 文件，**自动更新同一篇草稿**，不会重复建草稿。
+- 想强制新建一篇（同一稿件另起一篇草稿）：
 
   ```text
   python tools/push_wechat_draft.py --new-draft
+  python tools/push_wechat_draft.py --article article-foo.md --new-draft
   ```
 
 - 想更新指定草稿（不用记录文件）：
@@ -555,13 +570,23 @@ python -m pip install requests trafilatura
 `fetch_real_images*.py` 产出 `real_*.jpg`；`make_mhs_images.py` 产出 `cover.png/pic1.png/pic2.png`；`fetch_chosen_photos.py` 产出 `p01_*.jpg…p09_*.jpg`。`meta.json` 的 `cover` 与 `article.md` 的图片路径要指向**同一套**实际存在的文件，不要混用。
 
 ### 推送后发现把上一篇草稿覆盖了
-`push_wechat_draft.py` 默认读 `out/last-draft-id.txt` 更新同一篇草稿。换文章推送时忘了加 `--new-draft`，就会覆盖旧草稿。以后切换文章一律：
+现在每篇稿子有独立的 ID 文件（`out/last-draft-id.txt` / `out/last-draft-id-<稿件名>.txt`），**只要用 `--article` 指定稿件就不会互串**。出现覆盖通常是这两种情况：
+
+- 手工把备选稿复制成 `article.md` 再推送（旧做法），共用了一个 `last-draft-id.txt` → 改用 `--article`。
+- 同一篇稿件想另起一篇草稿却忘了加 `--new-draft`。
 
 ```text
-python tools/push_wechat_draft.py --new-draft
+python tools/push_wechat_draft.py --article article-foo.md            # 更新 foo 自己的草稿
+python tools/push_wechat_draft.py --article article-foo.md --new-draft # 给 foo 另建一篇
 ```
 
 已被覆盖的草稿无法从脚本恢复，只能重新推一次新建。
+
+### `Article file not found` / `Meta file not found`
+`--article` / `--meta` 路径写错了。相对路径会先按当前目录找、再回退到项目根目录；确认文件名拼写，或直接用绝对路径。
+
+### 推送后预览 HTML 没更新 / 找不到
+预览文件现在按稿件名输出：推 `article-foo.md` 得到 `out/article-foo.wechat.html`，主稿仍是 `out/article.wechat.html`。打开对应文件即可。
 
 ### 自绘图里中文变成方块（豆腐块）
 Pillow 脚本默认找 Windows 字体（`C:\Windows\Fonts\msyhbd.ttc` / `msyh.ttc` / `simhei.ttf`）。在 macOS / Linux 上或字体缺失时，会回退到默认字体导致中文不显示。改脚本里 `load_font()` 的候选列表，指向本机真实中文字体（如 `/System/Library/Fonts/PingFang.ttc`、`/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc`）。
@@ -598,12 +623,14 @@ python tools/gen_robot_images.py           # 机器人主题
 python tools/md_to_wechat.py                                    # 默认 article.md + meta.json
 python tools/md_to_wechat.py --article X.md --meta X.json --out out/X.html   # 指定其它稿件
 
-# —— 推送草稿箱 ——
-python tools/push_wechat_draft.py                       # 更新上次草稿（默认）
-python tools/push_wechat_draft.py --new-draft          # 新建草稿
-python tools/push_wechat_draft.py --draft-media-id ID  # 更新指定草稿
-python tools/push_wechat_draft.py --delete-draft-id ID # 顺手删重复草稿
-python tools/push_wechat_draft.py --config path.json   # 指定配置文件
+# —— 推送草稿箱（每篇稿件独立记录草稿 ID）——
+python tools/push_wechat_draft.py                       # 推送主稿，更新它自己的草稿
+python tools/push_wechat_draft.py --article X.md        # 推送指定稿件（meta 自动推断）
+python tools/push_wechat_draft.py --article X.md --meta Y.json  # 显式指定 meta
+python tools/push_wechat_draft.py --new-draft           # 强制新建一篇草稿
+python tools/push_wechat_draft.py --draft-media-id ID   # 更新指定草稿
+python tools/push_wechat_draft.py --delete-draft-id ID  # 顺手删重复草稿
+python tools/push_wechat_draft.py --config path.json    # 指定配置文件
 
 # —— 参考素材（可选，需 requests+trafilatura）——
 python tools/fetch_reference.py "文章URL"
@@ -617,9 +644,9 @@ python tools/analyze_reference.py
 2) 配接口：  cp wechat-config.example.json wechat-config.json   # 填 AppID/AppSecret + 加 IP 白名单
 3) 备图片：  python tools/fetch_real_images.py / fetch_chosen_photos.py   # 确认图片到位
 4) 写文章：  编辑 article.md 与 meta.json（多源核实事实）
-5) 预览：    python tools/md_to_wechat.py                      # 浏览器打开 out/article.wechat.html
+5) 预览：    python tools/md_to_wechat.py --article X.md           # 浏览器打开 out/X.wechat.html
 6) 过合规：  按 SKILL.md 第 10 步扫违禁词，改完再进下一步
-7) 推送：    python tools/push_wechat_draft.py                 # 到后台草稿箱确认（发布员只发草稿，不群发）
+7) 推送：    python tools/push_wechat_draft.py --article X.md     # 到后台草稿箱确认（发布员只发草稿，不群发）
 ```
 
 ---
