@@ -32,3 +32,6 @@ __pycache__/
 
 # 浏览器自动化留下的临时用户目录
 .edge-tmp*/
+
+# WorkBuddy 本地项目数据（会话记忆等，不入库）
+.workbuddy/
