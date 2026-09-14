@@ -1,8 +1,18 @@
 # my-gzh 公众号文章工程
 
-一个**纯本地**的公众号文章生产流水线：用 Markdown 写正文，转成带内联样式的微信兼容 HTML，既能手动复制进后台，也能通过公众号接口一键同步到草稿箱。
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue) ![Dependencies](https://img.shields.io/badge/核心流程-仅标准库-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-本工程所有截图、配图、HTML 都在本地生成，不依赖任何付费服务。核心脚本只用 Python 标准库即可运行；只有「生成配图」和「抓取参考文章」两步需要额外装包。
+一个**纯本地**的公众号文章生产流水线：选题 → 写作 → 配图 → 转微信兼容 HTML → 同步草稿箱，全流程脚本化，不依赖任何付费服务。
+
+能力分三层：
+
+| 层 | 内容 |
+| --- | --- |
+| 内容层 | `SKILL.md` 写作规范（多身份协作 + 优质内容 8 条硬标准）、`templates/` 爆款标题/摘要/正文模板 |
+| 生产层 | `md_to_wechat.py` 把 Markdown 转成带内联样式的微信 HTML，`push_wechat_draft.py` 一键同步草稿箱 |
+| 素材层 | Wikimedia Commons / Pexels 真实图片抓取与挑选、Pillow 本地示意图生成、HTML 转 PNG 配图 |
+
+本工程所有截图、配图、HTML 都在本地生成。核心脚本只用 Python 标准库即可运行；只有「生成配图」和「抓取参考文章」两步需要额外装包。
 
 ---
 
@@ -10,18 +20,30 @@
 
 ```text
 my-gzh/
-├── article.md                    # 正文，用标准 Markdown 写（含本项目扩展语法）
-├── meta.json                     # 标题、摘要、作者、来源、封面、标签
+├── SKILL.md                      # 写作技能规范：多身份协作流程 + 优质内容 8 条硬标准
+├── article.md                    # 当前正文（默认入口，用标准 Markdown 写）
+├── meta.json                     # 当前元信息：标题、摘要、作者、来源、封面、标签
+├── article-ai-desktop-workflow.md # 备选文章正文（多文章并存，详见「四、5」）
+├── meta-ai-desktop-workflow.json  # 备选文章元信息
+├── zhihu_article.md              # 同一选题的知乎版本（多平台复用）
 ├── README.md                     # 本教程
-├── .gitignore                    # 忽略 wechat-config.json，避免泄露凭据
+├── LICENSE                       # MIT
+├── .gitignore                    # 忽略 wechat-config.json / images / out / 备份文件
 ├── wechat-config.example.json    # 配置模板（提交到仓库）
 ├── wechat-config.json            # 本地公众号凭据（不提交，被 .gitignore 忽略）
 ├── requirements.txt              # 可选第三方依赖（仅抓取参考文章/生成配图时用）
+├── templates/                    # 写作模板（写稿时照着套）
+│   ├── viral-titles.md           # 爆款标题模板：钩子类型 + 字数红线
+│   ├── viral-summary.md          # 摘要模板：120 字内三段式
+│   └── viral-copy.md             # 正文结构模板：问题-方案型 / 清单型 / 观点型
 ├── images/                       # 本地素材（被 .gitignore 忽略，不提交）
 │   ├── real_robot.jpg            # 正文配图（由 fetch 脚本从 Wikimedia 拉取）
 │   ├── real_circuit.jpg
 │   ├── ...（real_*.jpg 若干）
-│   ├── cover.png / pic1.png      # 由 make_*.py 本地生成的示意图（可选）
+│   ├── p01_group.jpg … p09_*.jpg # 由 fetch_chosen_photos.py 从 Pexels 抓取的实拍图
+│   ├── cover.jpg / cover.png     # 封面（make_cover.py 裁成 1200×510）
+│   ├── fig1-*.png / fig2-*.png   # 由 HTML 设计稿导出的信息图（配 .html 源文件）
+│   ├── _candidates/              # Pexels 候选缩略图 + 联系表（人工挑选用）
 │   └── wechat-urls.json          # 手动发布时，填微信图片链接的映射表
 ├── references/                   # 抓取回来的参考文章（被 .gitignore 忽略）
 ├── tools/
@@ -30,8 +52,14 @@ my-gzh/
 │   ├── fetch_real_images.py      # 从 Wikimedia Commons 抓取真实可商用图片（标准库）
 │   ├── fetch_real_images_retry.py    # 对限流的主题重试抓取（标准库）
 │   ├── fetch_real_images_retry2.py   # 替换 3 张质量偏弱的真实图片（标准库）
+│   ├── search_commons.py         # 检索 Commons 只打印候选链接，供人工挑选（标准库）
+│   ├── fetch_pexels_candidates.py    # 下载 Pexels 候选图并拼联系表（需 Pillow）
+│   ├── fetch_chosen_photos.py    # 按 ID 清单下载最终选定的 Pexels 高清图（标准库）
+│   ├── make_cover.py             # 把原图裁成 2.35:1 的 1200×510 封面（需 Pillow）
 │   ├── make_mhs_images.py        # 用 Pillow 生成 MHS 主题封面与示意图（需 Pillow）
 │   ├── make_article_images.py    # 通用封面/示意图生成器（需 Pillow）
+│   ├── make_doubao_images.py     # 豆包开学季主题封面与信息图（需 Pillow）
+│   ├── gen_robot_images.py       # 机器人主题封面 + 对比信息图（需 Pillow）
 │   ├── fetch_reference.py        # 抓取网页/公众号/知乎文章到 references/（需 requests+trafilatura）
 │   └── analyze_reference.py      # 分析 references/ 下的参考素材（标准库）
 └── out/                          # 生成结果（被 .gitignore 忽略，不提交）
@@ -41,7 +69,7 @@ my-gzh/
     └── last-draft-id.txt         # 记录上次草稿 media_id，用于自动更新
 ```
 
-> ⚠️ `images/`、`references/`、`out/`、`wechat-config.json` 都在 `.gitignore` 里，**不会提交到仓库**。克隆到新机器后，这些目录需要本地重新生成或配置（详见下文）。
+> ⚠️ `images/`、`references/`、`out/`、`wechat-config.json` 以及 `*.bak*` 备份、`.edge-tmp*/` 临时目录都在 `.gitignore` 里，**不会提交到仓库**。克隆到新机器后，这些目录需要本地重新生成或配置（详见下文）。
 
 ---
 
@@ -171,7 +199,32 @@ python tools/fetch_real_images.py
 
 > 想换主题或换图？直接改这三个脚本顶部的 `TOPICS = [...]` 列表（格式为 `("搜索词", "目标文件名")`），重跑即可。
 
-### 方案 B：本地生成封面/示意图
+### 方案 B：Pexels 候选挑选（人像 / 校园 / 生活场景选题推荐）
+
+科技类图片用 Wikimedia 够用；**人像、校园、生活场景**这类实拍图，Wikimedia 质量普遍偏差，改走 Pexels（免费可商用，无需署名）。流程是「先批量抓候选 → 人眼挑 → 再下高清」：
+
+```text
+# 1) 检索阶段（二选一，都只打印候选，不下图）
+python tools/search_commons.py            # Commons 检索，打印候选链接（标准库）
+python tools/fetch_pexels_candidates.py   # Pexels 批量下候选缩略图 + 拼联系表（需 Pillow）
+
+# 2) 人工挑选：把看中的 Pexels 图片 ID 填进 fetch_chosen_photos.py 顶部的 PICKS 列表
+#    格式：(图片ID, "目标文件名.jpg", "这张图的用途说明")
+
+# 3) 下载最终选定的高清图
+python tools/fetch_chosen_photos.py       # 并发下载到 images/，宽度默认 1400
+
+# 4) 裁封面（公众号首图推荐 2.35:1）
+python tools/make_cover.py                # 把 p01_group.jpg 裁成 1200×510 的 cover
+```
+
+- `fetch_pexels_candidates.py` 会把候选图与「联系表（contact sheet）」输出到 `images/_candidates/`，一屏看完再决定，比一张张点开快得多。
+- `fetch_chosen_photos.py` 里的 `PICKS` 是三元组列表，**改 ID 和文件名即可换图**；`W = 1400` 控制下载宽度。
+- `make_cover.py` 按 `1200/510` 居中裁剪（过宽裁两边、过高裁上下），最后 resize 成 1200×510。换源图就改脚本里的 `p01_group.jpg`。
+
+> 挑图原则：图片必须服务内容，不凑数；同一篇里风格要统一（要么全实拍，要么全自绘）。
+
+### 方案 C：本地生成封面/示意图
 
 若你想用自绘的科技风示意图，运行：
 
@@ -183,13 +236,42 @@ python tools/make_mhs_images.py
 
 > 注意：`make_mhs_images.py` 生成的是 `cover.png`，而当前 `meta.json` 的封面字段是 `"cover": "images/real_ai.jpg"`。若改用生成的封面，请把 `meta.json` 里的 `cover` 改成 `images/cover.png`，并在 `article.md` 里把对应插图路径改成 `images/pic1.png` / `images/pic2.png`。两套图不要混着引用同一个不存在的文件。
 
-### 方案 C：手动准备图片（最省事，零脚本）
+其它主题的自绘脚本（改脚本内的文案/配色即可复用）：
+
+| 脚本 | 产出 | 适用选题 |
+| --- | --- | --- |
+| `make_article_images.py` | 通用封面 + 示意图 | 任意主题，也是其它脚本的公共函数库 |
+| `make_doubao_images.py` | 豆包主题封面 + 信息图 | 产品测评、AI 工具盘点 |
+| `gen_robot_images.py` | 机器人主题封面 + 对比信息图 | 具身智能、机器人赛事 |
+
+> 这几个脚本都用 Windows 系统字体（优先 `msyhbd.ttc`/`msyh.ttc`，回退 `simhei.ttf`），Linux/macOS 上跑需要自己改 `load_font()` 里的字体路径，否则中文会变成方块。
+
+### 方案 D：HTML 设计稿导出 PNG（信息图 / 数据图）
+
+仓库里 `images/fig*.html` 是信息图的 HTML 设计稿，用浏览器打开后截图（或整页截图）即得到 `fig*.png`。适合做「流程图、对比表、清单卡」这类排版密度高的图，比 Pillow 手绘省事。改 HTML 再重新截图即可迭代（仓库里的 `-v2` 就是第二版）。
+
+### 方案 E：手动准备图片（最省事，零脚本）
 
 直接在 `images/` 里放你自己的图（如 `myphoto.jpg`），在 `article.md` 里写 `![说明](images/myphoto.jpg)` 即可。`make_local_srcs_relative` 会自动把路径处理成预览可用的相对路径。
 
 ---
 
 ## 四、写文章
+
+### 0. 写作规范与模板（动笔前先过一遍）
+
+仓库里有一套写作约束，写稿/改稿时照着走，能明显减少「写完发现是注水文」的返工：
+
+| 文件 | 作用 |
+| --- | --- |
+| `SKILL.md` | 完整写作技能：多身份协作流程（选题 → 大纲 → 素材 → 初稿 → 自评 → 查重改写 → 配图 → 排版质检）+ 优质内容 8 条硬标准 + 8 项自检 |
+| `templates/viral-titles.md` | 爆款标题模板：每篇先出 3 个不同钩子类型的标题，≤24 字，不做标题党 |
+| `templates/viral-summary.md` | 摘要模板：120 字内，第一句钩子 / 第二句价值 / 第三句身份或紧迫感 |
+| `templates/viral-copy.md` | 正文结构模板：问题-方案型、清单型、观点型等可直接套的骨架 |
+
+优质内容 8 条硬标准（摘自 `SKILL.md`）：信息密度、独特观点、具体案例（≥3 个）、可执行步骤、逻辑链条、情绪共鸣、传播钩子、事实准确。自检低于 8 分就重写。
+
+> 事实类内容（数据、产品、版本）发布前必须核实，不确定就标注「需核实」；本工程的惯例是**多源交叉验证**（如人民网、新华社等权威源）后再推送。
 
 ### 1. 编辑正文 `article.md`
 
@@ -254,6 +336,36 @@ python tools/make_mhs_images.py
 - 用相对路径，如 `images/real_robot.jpg`。
 - 不要写 `<div class="...">`、不要引入外部 CSS/JS（微信会过滤）。
 - 代码块用 ```` ``` ```` 包裹。
+
+### 4. 多篇文章并存与切换
+
+仓库里可以同时放好几篇稿子，命名规则是「正文 + 同名元信息」成对出现：
+
+```text
+article.md                      + meta.json                       # 当前主稿（默认入口）
+article-ai-desktop-workflow.md  + meta-ai-desktop-workflow.json   # 备选稿
+zhihu_article.md                                                  # 同一选题的知乎版
+```
+
+- `md_to_wechat.py` 支持 `--article` / `--meta` / `--out` 参数，**可直接指定任意一篇**：
+
+  ```text
+  python tools/md_to_wechat.py --article article-ai-desktop-workflow.md \
+         --meta meta-ai-desktop-workflow.json \
+         --out out/article-ai-desktop-workflow.wechat.html
+  ```
+
+- `push_wechat_draft.py` 目前**固定读取根目录的 `article.md` 与 `meta.json`**（没有 `--article` 参数）。推送备选稿的标准做法是：先把备选稿备份并替换成入口文件，推完再换回来：
+
+  ```text
+  cp article.md article.md.bak && cp meta.json meta.json.bak
+  cp article-ai-desktop-workflow.md article.md
+  cp meta-ai-desktop-workflow.json meta.json
+  python tools/push_wechat_draft.py --new-draft     # 新稿件用 --new-draft，别覆盖上一篇的记录
+  cp article.md.bak article.md && cp meta.json.bak meta.json
+  ```
+
+  > `out/last-draft-id.txt` 只有一份，**切换文章推送时务必加 `--new-draft`**，否则会用上一篇的 `media_id` 把旧草稿覆盖掉。`*.bak` 已在 `.gitignore` 里，不会误提交。
 
 ---
 
@@ -419,21 +531,51 @@ python -m pip install requests trafilatura
 手动发布（方式 A）时，要先在「素材管理」上传图片，并把 `mmbiz.qpic.cn` 链接填进 `images/wechat-urls.json`，再重新转换。接口发布（方式 B）会自动上传并替换，无需手动填。
 
 ### 封面图和正文图是两套，搞混了
-`fetch_real_images*.py` 产出 `real_*.jpg`；`make_mhs_images.py` 产出 `cover.png/pic1.png/pic2.png`。`meta.json` 的 `cover` 与 `article.md` 的图片路径要指向**同一套**实际存在的文件，不要混用。
+`fetch_real_images*.py` 产出 `real_*.jpg`；`make_mhs_images.py` 产出 `cover.png/pic1.png/pic2.png`；`fetch_chosen_photos.py` 产出 `p01_*.jpg…p09_*.jpg`。`meta.json` 的 `cover` 与 `article.md` 的图片路径要指向**同一套**实际存在的文件，不要混用。
+
+### 推送后发现把上一篇草稿覆盖了
+`push_wechat_draft.py` 默认读 `out/last-draft-id.txt` 更新同一篇草稿。换文章推送时忘了加 `--new-draft`，就会覆盖旧草稿。以后切换文章一律：
+
+```text
+python tools/push_wechat_draft.py --new-draft
+```
+
+已被覆盖的草稿无法从脚本恢复，只能重新推一次新建。
+
+### 自绘图里中文变成方块（豆腐块）
+Pillow 脚本默认找 Windows 字体（`C:\Windows\Fonts\msyhbd.ttc` / `msyh.ttc` / `simhei.ttf`）。在 macOS / Linux 上或字体缺失时，会回退到默认字体导致中文不显示。改脚本里 `load_font()` 的候选列表，指向本机真实中文字体（如 `/System/Library/Fonts/PingFang.ttc`、`/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc`）。
+
+### Pexels / Commons 抓图失败或大量 `[NONE]`
+多为限流或网络问题。Commons 走 `fetch_real_images_retry.py`（带延时）重试；Pexels 换一批 ID 或减少并发（改 `fetch_chosen_photos.py` 里的 `ThreadPoolExecutor` 线程数）。始终抓不到就走「方案 E」手动放图。
+
+### 封面在后台显示被裁掉一截
+公众号首图推荐 2.35:1。用 `make_cover.py` 裁成 1200×510 后再上传，避免后台自动裁剪把主体切掉。
 
 ---
 
 ## 九、命令速查
 
 ```text
-# —— 图片素材 ——
+# —— 图片素材：Wikimedia（科技/器物类）——
 python tools/fetch_real_images.py          # 抓取真实可商用图片到 images/real_*.jpg
 python tools/fetch_real_images_retry.py    # 限流主题重试
 python tools/fetch_real_images_retry2.py   # 替换 3 张偏弱图片
-python tools/make_mhs_images.py            # 生成本地封面/示意图（需 Pillow）
+python tools/search_commons.py             # 只检索打印候选，人工挑选
+
+# —— 图片素材：Pexels（人像/校园/生活场景）——
+python tools/fetch_pexels_candidates.py    # 下候选缩略图 + 联系表（需 Pillow）
+python tools/fetch_chosen_photos.py        # 下载最终选定的高清图
+python tools/make_cover.py                 # 裁 2.35:1 的 1200×510 封面
+
+# —— 图片素材：本地自绘（需 Pillow）——
+python tools/make_article_images.py        # 通用封面/示意图（公共函数库）
+python tools/make_mhs_images.py            # MHS 主题
+python tools/make_doubao_images.py         # 豆包主题
+python tools/gen_robot_images.py           # 机器人主题
 
 # —— 转换与预览 ——
-python tools/md_to_wechat.py               # 转微信兼容 HTML + 预览页
+python tools/md_to_wechat.py                                    # 默认 article.md + meta.json
+python tools/md_to_wechat.py --article X.md --meta X.json --out out/X.html   # 指定其它稿件
 
 # —— 推送草稿箱 ——
 python tools/push_wechat_draft.py                       # 更新上次草稿（默认）
@@ -450,11 +592,12 @@ python tools/analyze_reference.py
 完整推荐流程：
 
 ```text
-1) 配接口：  cp wechat-config.example.json wechat-config.json   # 填 AppID/AppSecret + 加 IP 白名单
-2) 备图片：  python tools/fetch_real_images.py                 # 确认 images/real_*.jpg 到位
-3) 写文章：  编辑 article.md 与 meta.json
-4) 预览：    python tools/md_to_wechat.py                      # 浏览器打开 out/article.wechat.html
-5) 推送：    python tools/push_wechat_draft.py                 # 到后台草稿箱确认
+1) 定规范：  读 SKILL.md + templates/，先出 3 个标题、定结构
+2) 配接口：  cp wechat-config.example.json wechat-config.json   # 填 AppID/AppSecret + 加 IP 白名单
+3) 备图片：  python tools/fetch_real_images.py / fetch_chosen_photos.py   # 确认图片到位
+4) 写文章：  编辑 article.md 与 meta.json（多源核实事实）
+5) 预览：    python tools/md_to_wechat.py                      # 浏览器打开 out/article.wechat.html
+6) 推送：    python tools/push_wechat_draft.py                 # 到后台草稿箱确认
 ```
 
 ---

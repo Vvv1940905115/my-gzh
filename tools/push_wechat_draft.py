@@ -322,8 +322,6 @@ def main():
 
     image_map = {}
     for path in images:
-        if path == meta.get("cover", ""):
-            continue
         full_path = ROOT / path
         print(f"Uploading image: {full_path}")
         image_map[path] = upload_body_image(token, full_path)

@@ -25,3 +25,10 @@ __pycache__/
 *.log
 *.key
 *.pem
+
+# 编辑过程中的备份文件（article.md.bak / meta.json.bak-* 等）
+*.bak
+*.bak-*
+
+# 浏览器自动化留下的临时用户目录
+.edge-tmp*/

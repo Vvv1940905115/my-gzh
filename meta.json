@@ -1,8 +1,8 @@
 {
-  "title": "Anthropic 发布 MHS：给 AI Agent 一把打开物理世界的钥匙",
-  "summary": "MCP 让 AI 连软件，MHS 让 AI 连硬件。Anthropic 的模型硬件标准把 Coding Agent 和具身智能接上同一条总线，QuEra 实测接管激光系统成功率 99.3%。",
+  "title": "天工 Ultra 百米 8.64 秒：人形机器人运动会落幕，比纪录更该看的是这三点",
+  "summary": "第二届世界人形机器人运动会落幕，天工 Ultra 百米跑出 8.64 秒，打破人类纪录。但比速度更关键的，是机器人从「被遥控」走向「自己干」、2500 小时全量数据集免费开放、行业从「能不能」转向「值不值」。这篇一次讲清它为什么值得关注。",
   "author": "精神小哥的思绪",
   "source": "公众号：精神小哥的思绪",
-  "cover": "images/real_ai.jpg",
-  "tags": ["Anthropic", "MHS", "AI coding", "具身智能", "MCP"]
+  "cover": "images/cover.jpg",
+  "tags": ["具身智能", "人形机器人", "天工 Ultra", "世界机器人运动会", "AI 资讯"]
 }
