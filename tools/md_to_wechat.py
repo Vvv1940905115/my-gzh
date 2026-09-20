@@ -26,84 +26,70 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # ---- Typography palette (WeChat-safe, inline) -------------------------------
 PARAGRAPH_STYLE = (
-    "margin:12px 0; font-size:16px; line-height:1.95; color:#2b2f36; "
-    "letter-spacing:.2px; word-break:break-word; text-align:justify;"
+    "margin:20px 16px; font-size:16px; line-height:2; color:#222222; "
+    "letter-spacing:1px; word-spacing:1px; word-break:break-word; text-align:left;"
 )
-LEAD_STYLE = (
-    "margin:14px 0 20px; padding:14px 16px; font-size:16px; line-height:1.95; "
-    "color:#1a1d23; font-weight:600; background:#f5f8ff; "
-    "border-left:4px solid #2f6fdb; border-radius:0 8px 8px 0; "
-    "letter-spacing:.2px; text-align:justify;"
-)
+LEAD_STYLE = PARAGRAPH_STYLE
 HEADING_STYLES = {
     1: (
-        "margin:34px 0 16px; padding:8px 0 8px 14px; border-left:5px solid #2f6fdb; "
-        "font-size:20px; font-weight:800; color:#16181d; line-height:1.5; "
-        "background:linear-gradient(90deg,#eef3ff 0%,#ffffff 70%); border-radius:0 6px 6px 0;"
+        "margin:34px 16px 24px; font-size:19px; font-weight:bold; color:#222222; "
+        "line-height:1.5; text-align:center; letter-spacing:1px;"
     ),
     2: (
-        "margin:30px 0 14px; padding:7px 0 7px 13px; border-left:4px solid #2f6fdb; "
-        "font-size:18px; font-weight:800; color:#16181d; line-height:1.5;"
+        "margin:40px 16px 26px; padding-left:15px; border-left:6px solid #00997f; "
+        "font-size:20px; font-weight:bold; color:#222222; line-height:1.5; "
+        "text-align:left; letter-spacing:1px;"
     ),
     3: (
-        "margin:22px 0 10px; padding-left:11px; border-left:3px solid #9bb4e8; "
-        "font-size:16px; font-weight:700; color:#22262d; line-height:1.5;"
+        "margin:26px 60px 18px; padding-bottom:6px; border-bottom:3px solid #00997f; "
+        "font-size:16px; font-weight:bold; color:#222222; text-align:center; "
+        "letter-spacing:1px;"
     ),
 }
 BLOCKQUOTE_STYLE = (
-    "margin:18px 0; padding:18px 20px 18px 22px; background:#fdf8ee; "
-    "border-left:4px solid #e0a93b; border-radius:10px; color:#5b5232; "
-    "font-size:15px; line-height:1.9; box-shadow:0 2px 10px rgba(224,169,59,.08);"
+    "margin:22px 16px; padding:2px 0 2px 16px; border-left:4px solid #00997f; "
+    "color:#555555; font-size:16px; line-height:2; letter-spacing:1px; "
+    "word-spacing:1px; text-align:left;"
 )
 BLOCKQUOTE_MARK_STYLE = (
-    "display:block; font-size:30px; line-height:.9; margin-bottom:6px; "
-    "color:#e0a93b; font-family:Georgia,'Times New Roman',serif;"
+    "display:block; font-size:24px; line-height:.9; margin-bottom:4px; "
+    "color:#00997f; font-family:Georgia,'Times New Roman',serif;"
 )
 CARD_STYLE = (
-    "margin:16px 0; padding:16px 18px; background:#ffffff; "
-    "border:1px solid #eef0f3; border-left:4px solid #2f6fdb; "
-    "border-radius:10px; box-shadow:0 2px 10px rgba(31,35,41,.06);"
+    "margin:18px 16px; padding:14px 18px; background:#ffffff; "
+    "border:1px solid #ececec; border-left:4px solid #00997f; border-radius:4px;"
 )
 CARD_TITLE_STYLE = (
-    "margin:0 0 8px; font-size:16px; font-weight:800; color:#1f3a6e; line-height:1.6;"
+    "margin:0 0 8px; font-size:16px; font-weight:bold; color:#222222; "
+    "line-height:1.6; letter-spacing:1px;"
 )
 CARD_LINE_STYLE = (
-    "margin:6px 0; font-size:15px; line-height:1.85; color:#3a4049;"
+    "margin:6px 0; font-size:15px; line-height:1.9; color:#444444; letter-spacing:1px;"
 )
 NOTE_STYLE = (
-    "margin:18px 0; padding:16px 18px 16px 20px; background:#f6f9ff; "
-    "border-left:4px solid #3b82d9; border-radius:10px; "
-    "font-size:15px; line-height:1.9; color:#37445c; "
-    "box-shadow:0 2px 10px rgba(59,130,217,.06);"
+    "margin:20px 16px; padding:12px 16px; background:#fafafa; "
+    "border-left:4px solid #00997f; "
+    "font-size:15px; line-height:2; color:#444444; letter-spacing:1px;"
 )
 QUOTE_BOX_STYLE = (
-    "margin:22px 0; padding:22px 24px 22px 26px; "
-    "background:linear-gradient(135deg,#222831 0%,#2c3440 100%); "
-    "border-left:4px solid #e8b53d; border-radius:14px; "
-    "color:#f4f6f9; font-size:16px; font-weight:600; "
-    "line-height:1.85; letter-spacing:.3px; "
-    "box-shadow:0 6px 18px rgba(31,35,41,.18);"
+    "margin:24px 16px; padding:16px 20px; background:#fafafa; "
+    "border-left:4px solid #00997f; "
+    "color:#222222; font-size:16px; line-height:2; letter-spacing:1px;"
 )
 QUOTE_MARK_STYLE = (
-    "display:block; font-size:34px; line-height:.9; margin-bottom:8px; "
-    "color:#e8b53d; font-family:Georgia,'Times New Roman',serif;"
+    "display:block; font-size:28px; line-height:.9; margin-bottom:6px; "
+    "color:#00997f; font-family:Georgia,'Times New Roman',serif;"
 )
 HIGHLIGHT_BOX_STYLE = (
-    "margin:24px 0; padding:22px 24px 22px 28px; "
-    "background:linear-gradient(135deg,#f0f7ff 0%,#eaf4fc 50%,#f7fbff 100%); "
-    "border-left:5px solid #2f6fdb; "
-    "border-right:1px solid #d6e5f2; "
-    "border-top:1px solid #d6e5f2; "
-    "border-bottom:1px solid #d6e5f2; "
-    "border-radius:14px; "
-    "box-shadow:0 4px 20px rgba(47,111,219,.09), inset 0 1px 0 rgba(255,255,255,.8);"
+    "margin:26px 16px; padding:16px 20px; background:#f0f9f6; "
+    "border-left:4px solid #00997f; border-radius:4px;"
 )
 HIGHLIGHT_ICON_STYLE = (
     "display:inline-block; width:32px; height:32px; line-height:32px; text-align:center; "
-    "background:#2f6fdb; color:#fff; border-radius:8px; font-size:17px; margin-right:12px; vertical-align:middle;"
+    "background:#00997f; color:#fff; border-radius:8px; font-size:17px; margin-right:12px; vertical-align:middle;"
 )
 HIGHLIGHT_TEXT_STYLE = (
-    "font-size:18px; font-weight:700; color:#1a3a5c; letter-spacing:.5px; line-height:1.7; vertical-align:middle;"
+    "font-size:17px; font-weight:bold; color:#0b6b58; letter-spacing:1px; line-height:1.8; vertical-align:middle;"
 )
 CODE_BLOCK_STYLE = (
     "margin:14px 0; padding:14px 16px; background:#f6f8fa; border-radius:6px; "
@@ -112,32 +98,31 @@ CODE_BLOCK_STYLE = (
 )
 CODE_INLINE_STYLE = (
     "font-family:Consolas,Menlo,monospace; background:#f2f3f5; padding:2px 5px; "
-    "border-radius:4px; font-size:13px; color:#c0392b;"
+    "border-radius:4px; font-size:13px; color:#00997f;"
 )
-IMAGE_WRAP_STYLE = "text-align:center; margin:18px 0;"
+IMAGE_WRAP_STYLE = "text-align:center; margin:26px 16px;"
 IMAGE_STYLE = (
-    "width:100%; max-width:1080px; display:block; margin:0 auto; "
-    "border-radius:10px; box-shadow:0 2px 12px rgba(31,35,41,.08);"
+    "width:100%; max-width:1080px; display:block; margin:0 auto;"
 )
 CAPTION_STYLE = (
-    "margin:8px 0 18px; font-size:13px; line-height:1.6; color:#9aa1ab; "
-    "text-align:center; letter-spacing:.3px;"
+    "margin:6px 16px 24px; font-size:13px; line-height:1.5; color:#8f8f8f; "
+    "text-align:right; font-weight:300; letter-spacing:1px;"
 )
 VIDEO_STYLE = (
     "margin:16px 0; padding:18px 14px; background:#f6f8fa; "
     "border:1px dashed #d8dee6; border-radius:6px; text-align:center; "
     "color:#8a919f; font-size:14px; line-height:1.7;"
 )
-LINK_STYLE = "color:#2f6fdb; text-decoration:none;"
+LINK_STYLE = "color:#00997f; text-decoration:none;"
 TABLE_STYLE = "width:100%; border-collapse:collapse; margin:16px 0; font-size:14px;"
 TD_STYLE = "border:1px solid #d8dee6; padding:8px 10px; line-height:1.6;"
 FOOTER_STYLE = (
-    "margin:30px 0 0; padding-top:16px; border-top:1px solid #e8eaed; "
-    "color:#8a919f; font-size:13px; text-align:center; line-height:1.8;"
+    "margin:36px 16px 0; padding-top:18px; border-top:1px solid #ececec; "
+    "color:#8f8f8f; font-size:13px; text-align:center; line-height:1.9; "
+    "letter-spacing:1px;"
 )
 TAG_STYLE = (
-    "display:inline-block; margin:4px 4px 0 0; padding:3px 10px; "
-    "background:#eef3ff; color:#2f6fdb; border-radius:20px; font-size:12px;"
+    "display:inline-block; margin:0 4px; color:#8f8f8f; font-size:13px;"
 )
 
 TOKEN_RE = re.compile(
@@ -173,7 +158,7 @@ def render_inline(text, image_map):
 
 def render_token(token, image_map):
     if token.startswith("**") and token.endswith("**") and len(token) > 4:
-        return "<strong>" + render_inline(token[2:-2], image_map) + "</strong>"
+        return '<strong style="color:#00997f;">' + render_inline(token[2:-2], image_map) + "</strong>"
     if token.startswith("*") and token.endswith("*") and len(token) > 2:
         return "<em>" + render_inline(token[1:-1], image_map) + "</em>"
     if token.startswith("`") and token.endswith("`"):
@@ -399,8 +384,8 @@ def render_blocks(blocks, image_map):
             for index, item in enumerate(payload, start=1):
                 prefix = f"{index}. " if kind == "ordered" else "• "
                 item_style = (
-                    "margin:8px 0 8px 22px; font-size:16px; line-height:1.9; "
-                    "color:#2b2f36; text-align:justify;"
+                    "margin:12px 16px; font-size:16px; line-height:2; "
+                    "color:#222222; text-align:left; letter-spacing:1px;"
                 )
                 rendered.append(
                     f'<p style="{item_style}">{prefix}{render_inline(item, image_map)}</p>'
@@ -424,7 +409,9 @@ def render_footer(meta):
     author = str(meta.get("author", "")).strip()
     source = str(meta.get("source", "")).strip()
     meta_parts = [part for part in (author, source) if part]
-    lines = []
+    done_mark = "— 完 —"
+    lines = ['<p style="margin:0 16px 14px; font-size:14px; color:#8f8f8f; '
+             'text-align:center; letter-spacing:2px;">' + done_mark + '</p>']
     if tag_html:
         lines.append(f'<p style="{FOOTER_STYLE}">{tag_html}</p>')
     if meta_parts:

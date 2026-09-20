@@ -9,7 +9,7 @@
 | 层 | 内容 |
 | --- | --- |
 | 内容层 | `SKILL.md` 写作规范（12 身份协作流程 + 优质内容 8 条硬标准 + 违禁词/合规审查）、`templates/` 爆款标题/摘要/正文模板 |
-| 生产层 | `md_to_wechat.py` 把 Markdown 转成带内联样式的微信 HTML，`push_wechat_draft.py` 一键同步草稿箱 |
+| 生产层 | `md_to_wechat.py` 把 Markdown 转成带内联样式的微信 HTML，`push_wechat_draft.py` 一键同步草稿箱，`check_article.py` 发布前查重与资产校验 |
 | 素材层 | Wikimedia Commons / Pexels 真实图片抓取与挑选、Pillow 本地示意图生成、HTML 转 PNG 配图 |
 
 本工程所有截图、配图、HTML 都在本地生成。核心脚本只用 Python 标准库即可运行；只有「生成配图」和「抓取参考文章」两步需要额外装包。
@@ -45,7 +45,7 @@ my-gzh/
 │   ├── fig1-*.png / fig2-*.png   # 由 HTML 设计稿导出的信息图（配 .html 源文件）
 │   ├── _candidates/              # Pexels 候选缩略图 + 联系表（人工挑选用）
 │   └── wechat-urls.json          # 手动发布时，填微信图片链接的映射表
-├── references/                   # 抓取回来的参考文章（被 .gitignore 忽略）
+├── references/                   # 参考文章与 archive/ 已发存档（查重来源，被 .gitignore 忽略）
 ├── tools/
 │   ├── md_to_wechat.py           # Markdown → 微信兼容 HTML + 本地预览页（标准库）
 │   ├── push_wechat_draft.py      # 上传图片并同步到公众号草稿箱（标准库）
@@ -61,7 +61,8 @@ my-gzh/
 │   ├── make_doubao_images.py     # 豆包开学季主题封面与信息图（需 Pillow）
 │   ├── gen_robot_images.py       # 机器人主题封面 + 对比信息图（需 Pillow）
 │   ├── fetch_reference.py        # 抓取网页/公众号/知乎文章到 references/（需 requests+trafilatura）
-│   └── analyze_reference.py      # 分析 references/ 下的参考素材（标准库）
+│   ├── analyze_reference.py      # 分析 references/ 下的参考素材（标准库）
+│   └── check_article.py          # 发布前检查：连续 13 字查重 + 配图资产校验（标准库）
 └── out/                          # 生成结果（被 .gitignore 忽略，不提交）
     ├── article.wechat.html       # 本地预览页，可点「复制正文」
     ├── article.wechat.fragment.html  # 纯片段 HTML（供程序二次处理）
@@ -271,11 +272,11 @@ python tools/make_mhs_images.py
 | `templates/viral-summary.md` | 摘要模板：120 字内，第一句钩子 / 第二句价值 / 第三句身份或紧迫感 |
 | `templates/viral-copy.md` | 正文结构模板：问题-方案型、清单型、观点型等可直接套的骨架 |
 
-优质内容 8 条硬标准（摘自 `SKILL.md`）：信息密度、独特观点、具体案例（≥3 个）、可执行步骤、逻辑链条、情绪共鸣、传播钩子、事实准确。自检低于 8 分就重写。
+优质内容 8 条硬标准（摘自 `SKILL.md`）：信息密度、独特观点、具体案例（≥3 个）、可执行步骤、逻辑链条、情绪共鸣、传播钩子、事实准确。8 项自检必须全部通过，任何一项不通过就重写。
 
 #### SKILL.md 的 12 身份协作流程
 
-每篇按下面顺序走，**每个身份完成并确认后再进入下一个**（顺序不能跳）：
+每篇按下面顺序走（顺序不能跳）。用户确认只发生在 4 个检查点：选题（身份 1-4 合并汇报）、标题（3 选 1）、终审（身份 5-11 打包交付）、发布（身份 12）；检查点内自动连续执行，内部重写不占确认次数。知识库缺料时，先按 `references/knowledge.md` 的素材问答问用户。
 
 | # | 身份 | 产出 |
 | --- | --- | --- |
@@ -286,7 +287,7 @@ python tools/make_mhs_images.py
 | 5 | 文案写手 | 3 个标题 + 摘要 + 正文初稿 |
 | 6 | 事实核查员 | 核查清单，存疑处标注「需核实」 |
 | 7 | 配图师 | 3-5 张图描述 + 生成提示词 + 插入位置 |
-| 8 | 排版师 | 段落 ≤3 行、小标题、金句、留白 |
+| 8 | 排版师 | 段落 ≤4 行、小标题、金句、留白 |
 | 9 | 去 AI 感编辑 | 删套话与机械分点，改成真人聊天感 |
 | 10 | **违禁词审查员** | 违禁词清单 + 替换建议 + 待确认中低风险项 |
 | 11 | 质量把关人 | 10 项评分，低于 85 分退回重写 |
@@ -295,6 +296,8 @@ python tools/make_mhs_images.py
 > ⚠️ **发布前必过第 10 步**：扫描广告法极限词（最/第一/唯一/国家级…）、政治敏感词、色情低俗、暴力恐怖、赌博迷信、医疗夸大，并检查诱导分享等违规行为。脚本不会替你做合规检查，这一步必须在推送草稿前人工完成；AI 生成内容也需本人最终审核。
 
 > 事实类内容（数据、产品、版本）发布前必须核实，不确定就标注「需核实」；本工程的惯例是**多源交叉验证**（如人民网、新华社等权威源）后再推送。
+
+> 单项任务（改稿、查违禁词、排版、只发布）可走 `SKILL.md` 的「快速模式」，不必跑全流程；发布前记得先过 `python tools/check_article.py`（查重 + 配图资产校验）。
 
 ### 1. 编辑正文 `article.md`
 
@@ -631,6 +634,10 @@ python tools/push_wechat_draft.py --new-draft           # 强制新建一篇草�
 python tools/push_wechat_draft.py --draft-media-id ID   # 更新指定草稿
 python tools/push_wechat_draft.py --delete-draft-id ID  # 顺手删重复草稿
 python tools/push_wechat_draft.py --config path.json    # 指定配置文件
+
+# —— 发布前检查（标准库）——
+python tools/check_article.py --article X.md                  # 查重 + 配图资产校验（meta 自动推断）
+python tools/check_article.py --article X.md --sources references/archive   # 显式指定查重来源
 
 # —— 参考素材（可选，需 requests+trafilatura）——
 python tools/fetch_reference.py "文章URL"
