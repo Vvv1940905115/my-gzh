@@ -3,8 +3,14 @@ wechat-config.json
 
 # 本地素材与生成结果
 images/
-references/
 out/
+
+# 本地私密数据
+private/
+
+# 知识库私密层：素材、选题库、已发存档与敏感词表（本地保留，不入库）
+references/private/
+references/sensitive/
 
 # Python 虚拟环境
 .venv/
@@ -29,9 +35,11 @@ __pycache__/
 # 编辑过程中的备份文件（article.md.bak / meta.json.bak-* 等）
 *.bak
 *.bak-*
+*.traineddata
 
-# 浏览器自动化留下的临时用户目录
+# 浏览器自动化留下的临时目录
 .edge-tmp*/
+.tmp/
 
 # WorkBuddy 本地项目数据（会话记忆等，不入库）
 .workbuddy/

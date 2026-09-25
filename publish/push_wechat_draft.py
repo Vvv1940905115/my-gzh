@@ -268,6 +268,43 @@ def draft_id_path(article_path):
     return ROOT / "out" / f"last-draft-id-{stem}.txt"
 
 
+def cleanup_push_records(article_path):
+    """Remove temporary records created by this push after manual review."""
+    paths = [
+        draft_id_path(article_path),
+        ROOT / "out" / f"{Path(article_path).stem}.wechat.uploaded.html",
+        ROOT / "out" / f"{Path(article_path).stem}.wechat.html",
+        ROOT / "out" / f"{Path(article_path).stem}.wechat.fragment.html",
+    ]
+    for path in paths:
+        path.unlink(missing_ok=True)
+
+    out_dir = ROOT / "out"
+    if out_dir.exists() and not any(out_dir.iterdir()):
+        out_dir.rmdir()
+
+
+def confirm_cleanup(article_path):
+    """Ask for explicit confirmation before deleting local push records."""
+    print("\n请在公众号后台检查草稿内容。")
+    while True:
+        try:
+            answer = input(
+                "检查无误后输入 y 删除本地推送记录；输入 n 保留记录："
+            ).strip().lower()
+        except EOFError:
+            print("未收到确认，已保留本地推送记录。")
+            return
+        if answer in {"y", "yes"}:
+            cleanup_push_records(article_path)
+            print("已删除本地推送记录。")
+            return
+        if answer in {"n", "no"}:
+            print("已保留本地推送记录。")
+            return
+        print("请输入 y 或 n。")
+
+
 def render_content(image_map, article_path=None, meta_path=None):
     meta_file = Path(meta_path) if meta_path else ROOT / "meta.json"
     article_file = Path(article_path) if article_path else ROOT / "article.md"
@@ -480,6 +517,7 @@ def main():
     print(f"Cover media_id: {thumb_media_id}")
     for path, url in image_map.items():
         print(f"Image URL: {path} -> {url}")
+    confirm_cleanup(article_file)
 
 
 if __name__ == "__main__":

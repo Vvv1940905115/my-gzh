@@ -1,6 +1,8 @@
-﻿# -*- coding: utf-8 -*-
-# check_article.py -- 发布前检查：查重（连续 N 字不重复 + shingle 重复率）与配图资产校验。
-# 只用标准库。查重来源默认读 references/archive/（已发文章 / 参考稿的 .md/.txt）。
+# -*- coding: utf-8 -*-
+# check_article.py -- 发布前检查：查重（连续 N 字不重复 + shingle 重复率）、
+# 违禁词硬校验与配图资产校验。
+# 只用标准库。查重来源默认读 references/private/archive/（已发文章 / 参考稿的 .md/.txt）。
+# 违禁词表默认读 references/sensitive/banned-words.txt，格式：词|级别|建议，# 开头为注释。
 
 import argparse
 import json
@@ -13,6 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RUN_LIMIT_DEFAULT = 13
 RATE_LIMIT_DEFAULT = 25.0
+BANNED_WORDS_DEFAULT = ROOT / "references" / "sensitive" / "banned-words.txt"
 
 
 def resolve_path(p):
@@ -87,7 +90,7 @@ def dedup_check(article_text, source_files, run_limit, rate_limit):
             ctx = a_norm[start:match.a + match.size + 8]
             worst = (match.size, a_norm[match.a:match.a + match.size], ctx)
     if not source_grams:
-        print("查重来源不足，跳过查重（把已发文章/参考稿放入 references/archive/ 或用 --sources 指定）")
+        print("查重来源不足，跳过查重（把已发文章/参考稿放入 references/private/archive/ 或用 --sources 指定）")
         return True
     hit = sum(1 for g in grams if g in source_grams)
     rate = hit / len(grams) * 100.0
@@ -134,19 +137,72 @@ def asset_check(article_text, meta):
     return True
 
 
+def load_banned_words(path):
+    if not path.exists():
+        return None
+    words = []
+    for raw in read_text(path).splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = [p.strip() for p in line.split("|")]
+        word = parts[0]
+        level = parts[1] if len(parts) > 1 else "高"
+        tip = parts[2] if len(parts) > 2 else ""
+        if word:
+            words.append((word, level, tip))
+    return words
+
+
+def banned_words_check(article_text, meta, words):
+    if words is None:
+        print("违禁词表不存在，跳过硬校验（建议创建 references/sensitive/banned-words.txt）")
+        return True
+    texts = [("正文", article_text)]
+    if meta:
+        if meta.get("title"):
+            texts.append(("标题", str(meta["title"])))
+        if meta.get("summary"):
+            texts.append(("摘要", str(meta["summary"])))
+    hits = []
+    for word, level, tip in words:
+        for source, text in texts:
+            n = text.count(word)
+            if n:
+                hits.append((word, level, source, n, tip))
+    print("违禁词硬校验: 词表 %d 条，命中 %d 处" % (len(words), len(hits)))
+    if not hits:
+        print("违禁词: PASS")
+        return True
+    for word, level, source, n, tip in hits:
+        line = "  [%s] %s（%s x%d）" % (level, word, source, n)
+        if tip:
+            line += " 建议: %s" % tip
+        print(line)
+    high = [h for h in hits if h[1] == "高"]
+    if high:
+        print("违禁词: FAIL（高风险词必须替换或删除）")
+        return False
+    print("违禁词: WARN（中低风险项待用户确认）")
+    return True
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     if hasattr(sys.stderr, "reconfigure"):
         sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-    parser = argparse.ArgumentParser(description="发布前检查：查重与配图资产")
+    parser = argparse.ArgumentParser(description="发布前检查：查重、违禁词与配图资产")
     parser.add_argument("--article", default=str(ROOT / "article.md"))
     parser.add_argument("--meta", default=None)
     parser.add_argument("--sources", action="append", default=None,
-                        help="查重来源文件或目录，可多次；默认 references/archive/")
+                        help="查重来源文件或目录，可多次；默认 references/private/archive/")
+    parser.add_argument("--banned-words", default=None,
+                        help="违禁词表路径，默认 references/sensitive/banned-words.txt")
     parser.add_argument("--run-limit", type=int, default=RUN_LIMIT_DEFAULT)
     parser.add_argument("--rate-limit", type=float, default=RATE_LIMIT_DEFAULT)
     parser.add_argument("--skip-dedup", action="store_true")
+    parser.add_argument("--skip-banned", action="store_true")
     parser.add_argument("--skip-images", action="store_true")
     args = parser.parse_args()
 
@@ -165,8 +221,11 @@ def main():
     print("== check_article: %s ==" % article_path.name)
     if not args.skip_images:
         ok = asset_check(article_text, meta) and ok
+    if not args.skip_banned:
+        banned_path = resolve_path(args.banned_words) if args.banned_words else BANNED_WORDS_DEFAULT
+        ok = banned_words_check(article_text, meta, load_banned_words(banned_path)) and ok
     if not args.skip_dedup:
-        entries = args.sources if args.sources else [str(ROOT / "references" / "archive")]
+        entries = args.sources if args.sources else [str(ROOT / "references" / "private" / "archive")]
         files = collect_source_files(entries)
         if files:
             ok = dedup_check(article_text, files, args.run_limit, args.rate_limit) and ok

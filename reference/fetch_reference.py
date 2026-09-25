@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""读取同行公众号/知乎等文章，保存到 references/ 目录。"""
+"""读取同行公众号/知乎等文章，保存到 references/private/archive/ 目录。"""
 
 import argparse
 import json
@@ -15,7 +15,7 @@ import trafilatura
 
 
 ROOT = Path(__file__).resolve().parent.parent
-REFERENCES_DIR = ROOT / "references"
+REFERENCES_DIR = ROOT / "references" / "private" / "archive"
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -132,7 +132,7 @@ def save_manual_reference(file_path, url, output_name=None):
 def main():
     ensure_utf8_stdio()
     parser = argparse.ArgumentParser(
-        description="读取同行文章并保存到 references/ 目录"
+        description="读取同行文章并保存到 references/private/archive/ 目录"
     )
     parser.add_argument("--url", help="同行文章链接")
     parser.add_argument(
