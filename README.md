@@ -37,7 +37,10 @@ my-gzh/
 │   ├── md_to_wechat.py
 │   └── push_wechat_draft.py
 ├── quality/
-│   └── check_article.py
+│   ├── check_article.py
+│   └── check_assets.py
+├── tests/
+│   └── test_contracts.py
 ├── image/
 │   ├── fetch_real_images.py
 │   ├── fetch_real_images_retry.py
@@ -169,11 +172,11 @@ python publish/md_to_wechat.py --article articles/my-new-post/article.md --meta 
 默认输出：
 
 ```text
-out/article.wechat.html
-out/article.wechat.fragment.html
+out/<slug>.wechat.html
+out/<slug>.wechat.fragment.html
 ```
 
-脚本仍兼容旧入口：根目录存在 `article.md` 和 `meta.json` 时，可直接运行 `python publish/md_to_wechat.py`。
+`<slug>` 是稿件唯一标识：优先读取 `meta.json` 的 `slug` 字段，缺省时用 `articles/` 下的目录名。脚本仍兼容旧入口：根目录存在 `article.md` 和 `meta.json` 时，可直接运行 `python publish/md_to_wechat.py`，输出为 `out/article.wechat.html`。
 
 浏览器打开预览 HTML，点页面顶部的「复制正文」，再粘贴到公众号后台。
 
@@ -188,6 +191,8 @@ python quality/check_article.py --article articles/my-new-post/article.md
 - 违禁词：默认读取 `references/sensitive/banned-words.txt`
 - 文本重复：13 字连续查重和 shingle 重复率
 - 配图资产：`article.md` 与 `meta.json` 引用的本地图片是否存在
+
+运行 python quality/check_assets.py 可全量扫描所有稿件，检查缺失 meta、封面和正文图片，并将清单写入 out/missing-assets.txt。
 
 可用参数：
 
@@ -214,13 +219,13 @@ python publish/push_wechat_draft.py --article articles/my-new-post/article.md
 4. 调用公众号草稿接口，写入草稿箱。
 5. 在公众号后台检查完成后询问是否删除本地推送记录。
 
-本地推送记录包括：
+本地推送记录按稿件唯一标识分文件保存：
 
 ```text
-out/last-draft-id.txt
-out/article.wechat.html
-out/article.wechat.fragment.html
-out/article.wechat.uploaded.html
+out/last-draft-id-<slug>.txt
+out/<slug>.wechat.html
+out/<slug>.wechat.fragment.html
+out/<slug>.wechat.uploaded.html
 ```
 
 推送脚本最后会提示：
@@ -241,7 +246,7 @@ python publish/push_wechat_draft.py --article articles/my-new-post/article.md --
 python publish/push_wechat_draft.py --article articles/my-new-post/article.md --draft-media-id 草稿ID
 ```
 
-> 当前脚本的默认草稿 ID 文件按 `article.md` 的 stem 推断为 `out/last-draft-id.txt`。多篇 slug 文章如果都命名为 `article.md`，不要把它们当成并发更新的独立草稿；同一时间只更新一篇，或使用 `--draft-media-id` 显式指定。
+> 草稿 ID 与本地记录按稿件唯一标识（`meta.json` 的 `slug` 字段，缺省时为 `articles/` 下的目录名）分文件保存，多篇文章互不覆盖；路径异常时会用路径哈希兜底，保证 key 唯一。
 
 ## 图片方案
 
@@ -314,11 +319,12 @@ python reference/analyze_reference.py --article articles/my-new-post/article.md
 3) 写 articles/<slug>/article.md 与 articles/<slug>/meta.json
 4) 准备或确认 images/ 下的图片
 5) python quality/check_article.py --article articles/<slug>/article.md
-6) python publish/md_to_wechat.py --article articles/<slug>/article.md --meta articles/<slug>/meta.json
-7) 浏览器检查 out/article.wechat.html
-8) python publish/push_wechat_draft.py --article articles/<slug>/article.md
-9) 到公众号后台人工确认草稿
-10) 确认无误后，在终端输入 y 清理本地推送记录
+6) python quality/check_assets.py
+7) python publish/md_to_wechat.py --article articles/<slug>/article.md --meta articles/<slug>/meta.json
+8) 浏览器检查 out/<slug>.wechat.html
+9) python publish/push_wechat_draft.py --article articles/<slug>/article.md
+10) 到公众号后台人工确认草稿
+11) 确认无误后，在终端输入 y 清理本地推送记录
 ```
 
 ## 常见问题

@@ -15,6 +15,7 @@ Supported markdown:
 """
 
 import argparse
+import hashlib
 import html
 import json
 import os
@@ -136,6 +137,59 @@ def load_json(path):
             return json.load(handle)
     except FileNotFoundError:
         return {}
+
+
+def default_meta_for(article_path):
+    """Infer the matching meta file: article-foo.md -> meta-foo.json."""
+    path = Path(article_path)
+    if path.name == "article.md":
+        return path.with_name("meta.json")
+    if path.name.startswith("article"):
+        return path.with_name("meta" + path.stem[len("article") :] + ".json")
+    return path.with_name("meta.json")
+
+
+def safe_slug(value):
+    """Normalize a record key for file and URL-safe local storage."""
+    slug = re.sub(r"[^A-Za-z0-9_-]+", "-", str(value).strip()).strip("-").lower()
+    return slug or "article"
+
+
+def article_slug(article_path, meta_path=None):
+    """Return a stable per-article record key without relying on file stems."""
+    path = Path(article_path)
+    meta_candidates = []
+    if meta_path is not None:
+        meta_candidates.append(Path(meta_path))
+    meta_candidates.append(default_meta_for(path))
+
+    for candidate in meta_candidates:
+        try:
+            data = json.loads(candidate.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        raw_slug = str(data.get("slug", "")).strip()
+        if raw_slug:
+            return safe_slug(raw_slug)
+
+    resolved = path.resolve()
+    if path.name != "article.md":
+        return safe_slug(path.stem)
+
+    if resolved.parent == ROOT.resolve():
+        return "article"
+
+    if resolved.parent.name.lower() != "articles":
+        return safe_slug(resolved.parent.name)
+
+    # Two articles under different directories can both be named article.md.
+    # Hash the project-relative path so even malformed slug directories stay unique.
+    try:
+        relative = resolved.relative_to(ROOT.resolve()).as_posix()
+    except ValueError:
+        relative = resolved.as_posix()
+    digest = hashlib.sha256(relative.encode("utf-8")).hexdigest()[:12]
+    return safe_slug(f"article-{digest}")
 
 
 def resolve_image_src(src, image_map):
@@ -501,25 +555,39 @@ def build_preview(title, content, local_images):
 def main():
     parser = argparse.ArgumentParser(description="Markdown to WeChat-compatible HTML")
     parser.add_argument("--article", default=str(ROOT / "article.md"))
-    parser.add_argument("--meta", default=str(ROOT / "meta.json"))
+    parser.add_argument(
+        "--meta", default=None, help="Meta JSON file (default: inferred from --article)."
+    )
     parser.add_argument("--images-map", default=str(ROOT / "images" / "wechat-urls.json"))
-    parser.add_argument("--out", default=str(ROOT / "out" / "article.wechat.html"))
-    parser.add_argument("--fragment-out", default=str(ROOT / "out" / "article.wechat.fragment.html"))
+    parser.add_argument(
+        "--out", default=None, help="Preview HTML path (default: out/<slug>.wechat.html)."
+    )
+    parser.add_argument(
+        "--fragment-out",
+        default=None,
+        help="Fragment HTML path (default: out/<slug>.wechat.fragment.html).",
+    )
     args = parser.parse_args()
 
     article_path = Path(args.article)
-    meta = load_json(Path(args.meta))
+    meta_path = Path(args.meta) if args.meta else default_meta_for(article_path)
+    record_key = article_slug(article_path, meta_path)
+    meta = load_json(meta_path)
     image_map = load_json(Path(args.images_map))
 
     blocks = parse_blocks(article_path.read_text(encoding="utf-8").splitlines())
     content = render_blocks(blocks, image_map)
     content += "\n" + render_footer(meta)
 
-    out_path = Path(args.out)
+    out_path = Path(args.out) if args.out else ROOT / "out" / f"{record_key}.wechat.html"
     content = make_local_srcs_relative(content, out_path.parent)
     local_images = re.findall(r'src="((?!https?://|//|data:)[^"]+)"', content)
 
-    fragment_path = Path(args.fragment_out)
+    fragment_path = (
+        Path(args.fragment_out)
+        if args.fragment_out
+        else ROOT / "out" / f"{record_key}.wechat.fragment.html"
+    )
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fragment_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -527,6 +595,7 @@ def main():
     out_path.write_text(build_preview(title, content, local_images), encoding="utf-8")
     fragment_path.write_text(content + "\n", encoding="utf-8")
 
+    print(f"Record key: {record_key}")
     print(f"Written: {out_path}")
     print(f"Written: {fragment_path}")
     if local_images:

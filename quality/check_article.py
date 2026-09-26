@@ -33,12 +33,12 @@ def read_text(path):
 
 
 def default_meta_for(article_path):
-    stem = article_path.stem
-    if stem == "article":
-        return ROOT / "meta.json"
-    if stem.startswith("article"):
-        return ROOT / ("meta" + stem[len("article"):] + ".json")
-    return ROOT / ("meta-" + stem + ".json")
+    path = article_path
+    if path.name == "article.md":
+        return path.with_name("meta.json")
+    if path.name.startswith("article"):
+        return path.with_name("meta" + path.stem[len("article"):] + ".json")
+    return path.with_name("meta.json")
 
 
 def normalize(text):
@@ -111,8 +111,9 @@ def dedup_check(article_text, source_files, run_limit, rate_limit):
 
 def image_refs_in(text):
     refs = []
-    for m in re.finditer(r"!\[[^\]]*\]\(([^)]+)\)", text):
-        ref = m.group(1).strip()
+    pattern = r"!\[[^\]]*\]\((?:<([^>]+)>|([^)]+))\)"
+    for m in re.finditer(pattern, text):
+        ref = (m.group(1) or m.group(2)).strip()
         if not re.match(r"^(https?|data):", ref):
             refs.append(ref)
     return refs

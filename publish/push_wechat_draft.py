@@ -14,11 +14,14 @@ from pathlib import Path
 
 from md_to_wechat import (
     ROOT,
+    article_slug,
     build_preview,
+    default_meta_for,
     make_local_srcs_relative,
     parse_blocks,
     render_blocks,
     render_footer,
+    safe_slug,
 )
 
 
@@ -250,31 +253,22 @@ def resolve_path(raw, default_name=None):
     return path
 
 
-def default_meta_for(article_path):
-    """Infer the matching meta file: article-foo.md -> meta-foo.json."""
-    path = Path(article_path)
-    if path.name == "article.md":
-        return path.with_name("meta.json")
-    if path.name.startswith("article"):
-        return path.with_name("meta" + path.stem[len("article") :] + ".json")
-    return path.with_name("meta.json")
-
-
-def draft_id_path(article_path):
-    """One draft-id file per article, so switching articles never overwrites another."""
-    stem = Path(article_path).stem
-    if stem == "article":
+def draft_id_path(record_stem):
+    """Store one draft-id file per article slug."""
+    slug = safe_slug(record_stem)
+    if slug == "article":
         return ROOT / "out" / "last-draft-id.txt"
-    return ROOT / "out" / f"last-draft-id-{stem}.txt"
+    return ROOT / "out" / f"last-draft-id-{slug}.txt"
 
 
-def cleanup_push_records(article_path):
+def cleanup_push_records(record_stem):
     """Remove temporary records created by this push after manual review."""
+    slug = safe_slug(record_stem)
     paths = [
-        draft_id_path(article_path),
-        ROOT / "out" / f"{Path(article_path).stem}.wechat.uploaded.html",
-        ROOT / "out" / f"{Path(article_path).stem}.wechat.html",
-        ROOT / "out" / f"{Path(article_path).stem}.wechat.fragment.html",
+        draft_id_path(slug),
+        ROOT / "out" / f"{slug}.wechat.uploaded.html",
+        ROOT / "out" / f"{slug}.wechat.html",
+        ROOT / "out" / f"{slug}.wechat.fragment.html",
     ]
     for path in paths:
         path.unlink(missing_ok=True)
@@ -284,7 +278,7 @@ def cleanup_push_records(article_path):
         out_dir.rmdir()
 
 
-def confirm_cleanup(article_path):
+def confirm_cleanup(record_stem):
     """Ask for explicit confirmation before deleting local push records."""
     print("\n请在公众号后台检查草稿内容。")
     while True:
@@ -296,7 +290,7 @@ def confirm_cleanup(article_path):
             print("未收到确认，已保留本地推送记录。")
             return
         if answer in {"y", "yes"}:
-            cleanup_push_records(article_path)
+            cleanup_push_records(record_stem)
             print("已删除本地推送记录。")
             return
         if answer in {"n", "no"}:
@@ -366,8 +360,9 @@ def main():
         raise SystemExit(f"Article file not found: {article_file}")
     if not meta_file.exists():
         raise SystemExit(f"Meta file not found: {meta_file}")
-    id_file = draft_id_path(article_file)
-    out_stem = article_file.stem
+    record_stem = article_slug(article_file, meta_file)
+    id_file = draft_id_path(record_stem)
+    out_stem = record_stem
 
     if args.config:
         custom = Path(args.config)
@@ -392,6 +387,7 @@ def main():
 
     print(f"Article: {article_file}")
     print(f"Meta:    {meta_file}")
+    print(f"Record key: {record_stem}")
     article_text = article_file.read_text(encoding="utf-8")
     meta = json.loads(meta_file.read_text(encoding="utf-8"))
     images = extract_images(article_text, meta.get("cover", ""))
@@ -517,7 +513,7 @@ def main():
     print(f"Cover media_id: {thumb_media_id}")
     for path, url in image_map.items():
         print(f"Image URL: {path} -> {url}")
-    confirm_cleanup(article_file)
+    confirm_cleanup(record_stem)
 
 
 if __name__ == "__main__":
