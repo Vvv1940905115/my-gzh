@@ -1,0 +1,53 @@
+{
+  "themes": {
+    "article": [
+      {"layout":"hero","output":"cover.png","size":[1200,630],"gradient":["#0f172a","#1d4ed8","#0d9488"],"badge":"WINDOWS 11 · 实操指南","title":"用 Codex 做自动化剪辑","subtitle":"把重复劳动变成一条可反复使用的流水线","subtitle_size":30},
+      {"layout":"flow","output":"pic1.png","size":[1200,630],"title":"自动化剪辑流程","subtitle":"先说清楚，再小范围试跑，最后全量执行","top":256,"card_height":150,"footer_y":470,"footer_color":[71,85,105],"footers":["每一步都让 Codex 先说明要做什么，再碰你的素材"],"items":[{"title":"素材整理","body":"输入输出分目录","color":"#2563eb"},{"title":"描述任务","body":"规则说清楚","color":"#0d9488"},{"title":"脚本试跑","body":"只用 1 个文件","color":"#f59e0b"},{"title":"检查输出","body":"时长与日志","color":"#6366f1"},{"title":"全量执行","body":"人工复核发布","color":"#be185d"}]},
+      {"layout":"checklist","output":"pic2.png","size":[1200,630],"accent":"#00997f","title":"Win 11 准备清单","top":172,"row_height":88,"row_gap":24,"rows":[{"title":"Python 3.10+","desc":"安装时勾选 Add to PATH"},{"title":"FFmpeg","desc":"配置环境变量，命令行可识别"},{"title":"素材备份","desc":"原片单独保留一份"},{"title":"独立输出目录","desc":"不覆盖输入素材"}]},
+      {"layout":"columns","output":"pic3.png","size":[1200,630],"title":"适合什么人用","top":168,"height":406,"card_width":510,"cards":[{"title":"适合","color":"#0d9488","items":["素材多，规则固定","愿意把需求写清楚","能接受先试跑再全量"]},{"title":"不太适合","color":"#be185d","items":["追求精细转场调色","一点命令行都不想看","素材乱到没有规律"]}]}
+    ],
+    "asking": [
+      {"layout":"hero","output":"fig1-asking-cover.png","size":[1200,510],"gradient":["#f8fafc","#e2e8f0","#f8fafc"],"badge":"","title":"让 AI 少猜一点","subtitle":"背景 → 任务 → 限制 → 验收","title_size":60,"subtitle_size":28},
+      {"layout":"checklist","output":"fig2-asking-checklist.png","title":"问之前，先检查四件事","rows":[{"title":"背景","desc":"我在做什么，给谁看，在什么场景"},{"title":"任务","desc":"产出什么，给几版，用什么动词"},{"title":"限制","desc":"字数、口吻、禁止项、必留信息"},{"title":"验收","desc":"什么算合格，怎么自查"}]},
+      {"layout":"template","output":"fig3-asking-template.png","title":"直接改这段模板","lines":["背景：我在做【事情】，读者/客户是【谁】。","任务：请产出【交付物】，给【数量】版。","限制：不超过【字数】；不要【禁止项】。","验收：每版附一句为什么可用。"]},
+      {"layout":"columns","output":"fig4-asking-vs.png","title":"随手问 vs 四段问","title_size":40,"top":165,"height":405,"card_width":480,"center_label":"VS","cards":[{"title":"随手问","color":"#64748b","subtitle":"帮我写一条文案","items":["读者靠猜","口吻靠想","字数靠猜"]},{"title":"四段问","color":"#00997f","subtitle":"背景、任务、限制、验收","items":["信息齐","边界清","可迭代"]}]}
+    ],
+    "mhs": [
+      {"layout":"hero","output":"cover.png","size":[1200,630],"gradient":["#0d1126","#1d428a","#0d7482"],"badge":"AI 日报 · 具身智能","title":"Anthropic 发布 MHS","subtitle":"给 AI Agent 一把打开物理世界的钥匙","subtitle_size":40,"note":"硬件世界的 MCP：让智能体从写代码，走向动设备","note_height":54},
+      {"layout":"columns","output":"pic1.png","title":"两条总线，一个 Agent","subtitle":"MCP 接管软件世界，MHS 接管硬件世界","top":210,"height":320,"card_width":460,"cards":[{"title":"MCP","color":"#2563eb","subtitle":"软件世界的协议层","items":["调用 API","读写文件","连接数据库"]},{"title":"MHS","color":"#0d9488","subtitle":"硬件世界的协议层","items":["显微镜","机械臂","量子计算机"]}]},
+      {"layout":"pillars","output":"pic2.png","title":"MHS 落地的三个支点","badge":"Coding Agent + 具身智能 = 同一条总线","pillars":[{"title":"设备互通","subtitle":"统一发现 / 连接 / 操作","color":"#2563eb"},{"title":"硬指标","subtitle":"QuEra 实测 99.3%","color":"#f59e0b"},{"title":"安全前置","subtitle":"身份 / 权限 / 沙箱","color":"#be185d"}]}
+    ],
+    "doubao": [
+      {"layout":"hero","output":"doubao_cover.png","size":[1200,510],"gradient":["#171a3a","#3f4cde","#7c5cff"],"badge":"2026 开学季 · 学生专属","title":"豆包免费领 3 个月","subtitle":"完成学生认证，订阅权益直接到账","chips":[["3 个月订阅","#5b8cff"],["额度重置 ×1","#8b6cff"],["月卡立减 30","#0daaa0"]],"note":"仅限豆包电脑客户端 · 手机 App 与网页版不可认证","note_height":48},
+      {"layout":"flow","output":"doubao_flow.png","title":"豆包开学季 · 领取流程","subtitle":"全程约 5 分钟，必须在一台电脑上的豆包客户端里完成","footer_color":[190,90,60],"footers":["学信网密码、验证码、身份证号、人脸信息 —— 一律不要发进豆包对话框","界面快讯 · 中国青年网 · 快科技（2026-08-31 起）"],"items":[{"title":"装 / 更新电脑版","body":"下载豆包 PC 客户端并登录，版本建议 2.26.0 及以上","color":"#5b8cff"},{"title":"左下角找入口","body":"点头像 → 开学免费送 3 个月，进入活动页点「立即认证」","color":"#8b6cff"},{"title":"扫码 + 学信网","body":"抖音 App 扫码绑定账号，学信网核验在读学籍","color":"#0daaa0"},{"title":"点「领取全部奖励」","body":"认证通过不等于到账，手动点一次才发放","color":"#f0a028"}]},
+      {"layout":"benefits","output":"doubao_rights.png","title":"认证通过后能拿到什么","subtitle":"三项权益需在活动页手动点「领取全部奖励」才会到账","footer":"开学季 3 个月与此前的学生特惠可叠加使用 · 以账号内活动页实际展示为准","cards":[{"title":"3 个月订阅权益","color":"#5b8cff","points":["豆包专业版标准套餐","免费使用 90 天","每账号限领一次"]},{"title":"1 次额度重置机会","color":"#8b6cff","points":["额度用完后可重置一次","自获得日起 30 天有效","单账号最多持有 10 次"]},{"title":"学生专属优惠","color":"#0daaa0","points":["免费额度升级至 2.5 倍","标准套餐 38 元 / 月","原价 68 元，立减 30"]}]}
+    ],
+    "workflow": [
+      {"layout":"hero","output":"fig1-workflow-v2.png","size":[1200,510],"gradient":["#f8fafc","#e2e8f0","#f8fafc"],"badge":"","title":"三段接力，把想法做成事","subtitle":"想法 → 草稿 → 任务 → 可复用结论","title_size":60,"subtitle_size":28},
+      {"layout":"columns","output":"fig2-three-tools-v2.png","title":"三个工具，各干一件事","title_size":40,"top":150,"height":450,"card_width":340,"cards":[{"title":"01 豆包输入法","color":"#00997f","subtitle":"随手捕捉","items":["碎想法马上变成","结构化的草稿"]},{"title":"02 Loomy","color":"#00997f","subtitle":"拆解任务","items":["把草稿变成今天、","明天能做的清单"]},{"title":"03 Gemini","color":"#00997f","subtitle":"收口判断","items":["挑出关键动作和","可复用的结论"]}],"center_label":""},
+      {"layout":"checklist","output":"fig3-checklist-v2.png","title":"挑桌面 AI 的五关","row_height":94,"row_gap":8,"rows":[{"title":"唤起快","desc":"两三秒内可用，不用先切窗口"},{"title":"不打断","desc":"在原界面旁边接住任务"},{"title":"能沉淀","desc":"草稿、清单、结论都能保存"},{"title":"追问顺","desc":"不用每次重新解释背景"},{"title":"常驻","desc":"需要时就在，不需要时不吵"}]},
+      {"layout":"columns","output":"fig4-vs-v2.png","title":"跑分 vs 体验","title_size":40,"top":160,"height":400,"card_width":480,"center_label":"VS","cards":[{"title":"跑分","color":"#64748b","subtitle":"决定候选名单","items":["榜单排名","跑分对比","新功能堆叠"]},{"title":"体验","color":"#00997f","subtitle":"决定留下名单","items":["唤起快","不打断","能沉淀"]}]}
+    ],
+    "robot": [
+      {"layout":"hero","output":"cover.jpg","size":[1200,510],"gradient":["#0b1226","#173778","#0d6e78"],"badge":"","title":"天工 Ultra 跑出 8.64 秒","subtitle":"百米破人类纪录，人形机器人运动会落幕","title_size":58,"subtitle_size":30,"note":"从「更快」到「更智」：自主作业 · 2500h 数据集免费开放 · 行业进入算账时代","note_height":80,"footer":"公众号 · 精神小哥的思绪 | AI coding 与具身智能日报"},
+      {"layout":"table","output":"robot_compare.png","title":"首届 vs 第二届：一年之间的跨越","headers":["项目","首届","第二届","变化"],"columns":[[40,360],[360,640],[640,920],[920,1160]],"row_height":118,"font_sizes":[26,26,30,22],"rows":[["百米（秒）","21.50","8.64","↓ 59.8%"],["原地跳高（米）","0.956","3.40","↑ 255%"],["1500 米","6:34","2:21","↓ 64.3%"],["参赛机器人（台）","—","2056","16 国 666 队"]],"footer":"数据来源：第二届世界人形机器人运动会官方赛果、人民网、封面新闻"}
+    ],
+    "ae2026": [
+      {"layout":"hero","output":"fig1-ae2026-garbled-repo.png","size":[1200,630],"gradient":["#0b1220","#1d4ed8","#0d9488"],"badge":"AE 2026.2 实操修复","title":"插件中文乱码？一个补丁文件搞定","subtitle":"GBK 被按 UTF-8 解析","title_size":62,"subtitle_size":32,"note":"补丁文件：GBK_UTF8_HOOK.aex · 1.14MB","note_height":58},
+      {"layout":"checklist","output":"fig2-ae2026-garbled-files.png","accent":"#0d9488","title":"解压后先看 3 个文件","rows":[{"title":"GBK_UTF8_HOOK.aex","desc":"核心补丁文件"},{"title":"README.md","desc":"确认成因和安装范围"},{"title":"安装说明","desc":"按版本和目录核对"}]},
+      {"layout":"template","output":"fig3-ae2026-garbled-mediacore.png","accent":"#0d9488","title":"复制到 MediaCore","lines":["目录：C:\\Program Files\\Adobe\\Common\\Plug-ins\\7.0\\MediaCore\\","文件：GBK_UTF8_HOOK.aex","动作：完全退出 AE，再重新打开"]},
+      {"layout":"columns","output":"fig4-ae2026-garbled-before.png","title":"修复前：参数靠猜","title_size":40,"top":165,"height":405,"card_width":480,"center_label":"","cards":[{"title":"乱码表现","color":"#be185d","subtitle":"Deep Glow 2 控件","items":["参数名不可读","选项挤成符号","只能凭经验点"]},{"title":"直接影响","color":"#f59e0b","subtitle":"效率下降","items":["来回试错","不敢改参数","经常重装"]}],"accent":"#be185d"},
+      {"layout":"checklist","output":"fig5-ae2026-garbled-after.png","accent":"#0d9488","title":"修复后：界面恢复可读","row_height":94,"row_gap":8,"rows":[{"title":"中文参数","desc":"辉光强度、混合模式可读"},{"title":"色彩映射","desc":"不再挤成乱码"},{"title":"镜头污垢","desc":"选项能直接确认"},{"title":"控件布局","desc":"恢复常规工作流"}]}
+    ],
+    "desktop": [
+      {"layout":"hero","output":"1.png","size":[1200,630],"gradient":["#0b1224","#3f4cde","#7c5cff"],"badge":"桌面 AI 本地链路","title":"把 AI 女友放上桌面","subtitle":"角色图 + 图生视频 + 桌面壳 + 严格提示词","note":"先做 5 秒小样，检查脸部与服装稳定性","note_height":58},
+      {"layout":"checklist","output":"2.png","accent":"#8b6cff","title":"角色锚点检查","rows":[{"title":"脸部清晰","desc":"正面或半身，五官可辨"},{"title":"光线稳定","desc":"避免频繁换色和硬阴影"},{"title":"服装固定","desc":"发色、服装、配饰写进提示词"},{"title":"背景干净","desc":"桌面镜头别抢主体"}]},
+      {"layout":"hero","output":"2豆包 (2).png","size":[1200,510],"gradient":["#171a3a","#3f4cde","#7c5cff"],"badge":"角色影像整理","title":"先把角色统一，再进生成","subtitle":"同一人物、同一光线、同一服装","title_size":58,"subtitle_size":30},
+      {"layout":"checklist","output":"3.png","accent":"#5b8cff","title":"提示词四件套","rows":[{"title":"镜头","desc":"fixed camera, continuous shot"},{"title":"场景","desc":"Windows desktop, sofa, dark wall"},{"title":"角色","desc":"same face, hair, costume"},{"title":"动作","desc":"enter / exit from far right only"}]},
+      {"layout":"flow","output":"4.png","accent":"#5b8cff","title":"ComfyUI MiniMax H3 核心组件","subtitle":"把模型、提示词、采样器和时长放在一起看","footer_color":[100,116,139],"footers":["首帧必填，尾帧可选；输出 VIDEO，音频可原生立体声"],"items":[{"title":"主模型","body":"UNet 负责视频生成","color":"#5b8cff"},{"title":"视频 VAE","body":"还原画面细节","color":"#8b6cff"},{"title":"音频 VAE","body":"处理声音轨","color":"#0daaa0"},{"title":"采样器","body":"控制去噪与速度","color":"#f0a028"}]},
+      {"layout":"checklist","output":"5.png","accent":"#0daaa0","title":"导出前先看这四项","rows":[{"title":"节奏","desc":"呼吸、眨眼、转头是否自然"},{"title":"字幕","desc":"位置固定，不遮挡主体"},{"title":"分辨率","desc":"先定 24fps 小样，再考虑放大"},{"title":"稳定性","desc":"脸型和服装不能漂"}]},
+      {"layout":"hero","output":"6.jpeg","size":[1200,510],"gradient":["#101828","#0d9488","#2563eb"],"badge":"桌面预览小样","title":"先上桌面，再投入长镜头","subtitle":"5 秒小样通过后再做优化","title_size":54,"subtitle_size":28},
+      {"layout":"columns","output":"7.png","title":"多帧一致性检查","title_size":40,"top":165,"height":405,"card_width":480,"center_label":"","cards":[{"title":"第一帧","color":"#2563eb","subtitle":"只看构图和人物","items":["五官清晰","服装完整","背景稳定"]},{"title":"后续帧","color":"#be185d","subtitle":"检查角色漂移","items":["脸型不漂","手部不崩","衣服不跳变"]}],"accent":"#be185d"}
+    ]
+  }
+}

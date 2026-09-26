@@ -14,7 +14,7 @@
 | `publish/` | Markdown 转微信 HTML、上传图片并推送公众号草稿 |
 | `quality/` | 发布前综合质检 |
 | `image/` | 抓图、候选图管理、封面裁剪、本地示意图生成 |
-| `reference/` | 参考文章抓取与只读分析 |
+| `tools/` | 参考文章抓取与只读分析 |
 | `references/` | 公共方法、私密素材、敏感词与平台规则 |
 | `config/` | 依赖清单和公众号配置模板 |
 
@@ -42,16 +42,11 @@ my-gzh/
 ├── tests/
 │   └── test_contracts.py
 ├── image/
-│   ├── fetch_real_images.py
-│   ├── fetch_real_images_retry.py
-│   ├── fetch_real_images_retry2.py
-│   ├── search_commons.py
-│   ├── fetch_pexels_candidates.py
-│   ├── fetch_chosen_photos.py
-│   ├── make_cover.py
-│   ├── make_article_images.py
-│   └── ...
-├── reference/
+│   ├── themes.json
+│   ├── make_theme_images.py
+│   ├── fetch_images.py
+│   └── ocr-crops.ps1
+├── tools/
 │   ├── fetch_reference.py
 │   └── analyze_reference.py
 ├── references/
@@ -255,10 +250,8 @@ python publish/push_wechat_draft.py --article articles/my-new-post/article.md --
 适合科技、器物、公开照片类素材：
 
 ```text
-python image/search_commons.py
-python image/fetch_real_images.py
-python image/fetch_real_images_retry.py
-python image/fetch_real_images_retry2.py
+python image/fetch_images.py search --query "humanoid robot"
+python image/fetch_images.py fetch --source commons --spec "humanoid robot::real_robot.jpg" --retry 3
 ```
 
 ### Pexels
@@ -266,17 +259,18 @@ python image/fetch_real_images_retry2.py
 适合人像、校园、生活场景：
 
 ```text
-python image/fetch_pexels_candidates.py
-python image/fetch_chosen_photos.py
+python image/fetch_images.py fetch --source pexels --spec "10498787::p01_group.jpg"
+python image/fetch_images.py sheet --input-dir images/_candidates --output images/sheet.png
 ```
 
-流程是先生成候选图和联系表，人工挑选后把图片 ID 填进 `fetch_chosen_photos.py`，再下载高清图。
+流程是先搜索或下载候选图，必要时生成联系表，人工挑选后用图片 ID 或 Commons 查询词下载高清图。
 
 ### 本地生成
 
 ```text
-python image/make_cover.py
-python image/make_article_images.py
+python image/make_theme_images.py --list
+python image/make_theme_images.py --theme article
+python image/fetch_images.py crop --input images/p01_group.jpg --output images/cover.jpg --ratio 1200:510
 ```
 
 生成图片依赖 Pillow。生成的封面建议裁剪为 1200×510，符合公众号 2.35:1 首图比例。
@@ -294,13 +288,13 @@ python image/make_article_images.py
 抓取网页或文章：
 
 ```text
-python reference/fetch_reference.py "https://example.com/article"
+python tools/fetch_reference.py "https://example.com/article"
 ```
 
 只读分析素材和稿件：
 
 ```text
-python reference/analyze_reference.py --article articles/my-new-post/article.md
+python tools/analyze_reference.py --slug my-new-post
 ```
 
 `references/` 分层如下：

@@ -1,8 +1,0 @@
-{
-  "title": "AE 2026.2 插件中文乱码？一个补丁文件搞定",
-  "summary": "升级 AE 2026.2 后，汉化插件界面一夜变成乱码？不是插件坏了，是 Adobe 改了编码解析。这篇给你一个 1.14MB 的补丁文件和 3 步安装方法，把界面中文救回来，顺手讲清 GBK 与 UTF-8 之争。",
-  "author": "精神小哥的思绪",
-  "source": "公众号：精神小哥的思绪",
-  "cover": "images/fig1-ae2026-garbled-repo.png",
-  "tags": ["After Effects", "AE插件乱码", "GBK补丁", "视频剪辑师", "AE 2026.2"]
-}

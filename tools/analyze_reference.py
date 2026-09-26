@@ -19,7 +19,7 @@ def configure_stdio():
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DEFAULT_ARTICLE = BASE_DIR / "article.md"
+ARTICLES_DIR = BASE_DIR / "articles"
 REFERENCES_DIR = BASE_DIR / "references"
 
 RISK_PATTERNS = {
@@ -87,11 +87,20 @@ def scan_text(text):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="只读分析参考素材和当前稿件风险表述")
-    parser.add_argument("--article", default=str(DEFAULT_ARTICLE), help="当前稿件路径，默认 article.md")
+    parser.add_argument("--article", default=None, help="当前稿件路径；不传时必须用 --slug 指定 articles/<slug>/article.md")
+    parser.add_argument("--slug", help="稿件目录名，例如 ai-asking-framework；与 --article 二选一")
     parser.add_argument("--references", default=str(REFERENCES_DIR), help="参考素材目录，默认 references/")
     parser.add_argument("--output", default=None, help="可选分析报告输出路径；不会写入稿件")
     parser.add_argument("--force", action="store_true", help="允许覆盖已存在的 --output 文件")
     return parser.parse_args()
+
+
+def default_article_path(slug):
+    if not slug:
+        raise ValueError("必须提供 --article 或 --slug")
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", slug):
+        raise ValueError("slug 只允许字母、数字、短横线和下划线")
+    return ARTICLES_DIR / slug / "article.md"
 
 
 def resolve_project_path(path_text):
@@ -119,7 +128,14 @@ def build_report(article_path, article_text, reference_files, reference_text, fi
 def main():
     configure_stdio()
     args = parse_args()
-    article_path = resolve_project_path(args.article)
+    if bool(args.article) == bool(args.slug):
+        print("必须且只能提供 --article 或 --slug 之一。", file=sys.stderr)
+        return 2
+    try:
+        article_path = resolve_project_path(args.article) if args.article else default_article_path(args.slug)
+    except ValueError as exc:
+        print(exc, file=sys.stderr)
+        return 2
     references_path = resolve_project_path(args.references)
 
     if not article_path.exists():

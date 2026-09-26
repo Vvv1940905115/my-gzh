@@ -299,6 +299,31 @@ def confirm_cleanup(record_stem):
         print("请输入 y 或 n。")
 
 
+def confirm_archive(article_file, meta_file):
+    """Ask whether to archive the published article for dedup."""
+    archive_dir = ROOT / "references" / "private" / "archive"
+    print("\n文章已发布成功。是否将本篇正文自动归档至 references/private/archive/ 以丰富查重库？")
+    while True:
+        try:
+            answer = input("输入 y 归档 / 输入 n 跳过：").strip().lower()
+        except EOFError:
+            print("未收到确认，已跳过归档。")
+            return
+        if answer in {"y", "yes"}:
+            archive_dir.mkdir(parents=True, exist_ok=True)
+            dest = archive_dir / f"{article_file.parent.name}-{article_file.name}"
+            dest.write_text(article_file.read_text(encoding="utf-8"), encoding="utf-8")
+            if meta_file.exists():
+                meta_dest = archive_dir / f"{meta_file.parent.name}-{meta_file.name}"
+                meta_dest.write_text(meta_file.read_text(encoding="utf-8"), encoding="utf-8")
+            print(f"已归档至 {dest}")
+            return
+        if answer in {"n", "no"}:
+            print("已跳过归档。")
+            return
+        print("请输入 y 或 n。")
+
+
 def render_content(image_map, article_path=None, meta_path=None):
     meta_file = Path(meta_path) if meta_path else ROOT / "meta.json"
     article_file = Path(article_path) if article_path else ROOT / "article.md"
@@ -514,6 +539,7 @@ def main():
     for path, url in image_map.items():
         print(f"Image URL: {path} -> {url}")
     confirm_cleanup(record_stem)
+    confirm_archive(article_file, meta_file)
 
 
 if __name__ == "__main__":
