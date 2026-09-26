@@ -76,6 +76,20 @@ my-gzh/
 python --version
 ```
 
+推荐使用虚拟环境隔离依赖（一条命令完成创建 + 安装）：
+
+```text
+python -m venv venv
+venv\Scripts\activate
+pip install -r config/requirements.lock
+```
+
+如果你不想用虚拟环境，也可以全局安装：
+
+```text
+pip install -r config/requirements.lock
+```
+
 核心转换需要 Markdown 3.11。以下任务按需安装：
 
 | 任务 | 命令 |

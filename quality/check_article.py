@@ -183,7 +183,10 @@ def citation_warnings(article_text):
     """Return paragraphs that state data without a visible source marker."""
     without_code = re.sub(r"```.*?```", " ", article_text, flags=re.S)
     data_pattern = re.compile(
-        r"\d+(?:\.\d+)?\s*(?:%|％|倍|亿元|万元|万人|亿次)"
+        r"\d+(?:\.\d+)?\s*(?:%|％|倍|成|亿|万|千|元|美元|欧元|日元|块|人|次|辆|台|家|款|名|轮|天|小时|分钟|年|个月|个百分点)"
+        r"|[一二三四五六七八九十百千万亿]+(?:倍|成|亿|万|千|年|个月|天|人|次)"
+        r"|占.{0,10}(?:\d+(?:\.\d+)?\s*[%％]?|[一二三四五六七八九十百千万亿]+|一半|过半|多数|近半)"
+        r"|(?:突破|超过|高达|达到|逾|增至|降至)\s*\d+(?:\.\d+)?"
     )
     source_pattern = re.compile(
         r"(来源\s*[:：]|https?://|据.{1,30}报道|引用自.{1,30})"

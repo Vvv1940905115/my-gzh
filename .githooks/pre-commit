@@ -1,0 +1,17 @@
+#!/bin/sh
+# Pre-commit hook: run all regression tests before allowing a commit.
+echo "Running contract tests..."
+python -X utf8 tests/test_contracts.py
+if [ $? -ne 0 ]; then
+  echo "FAIL: tests/test_contracts.py"
+  exit 1
+fi
+
+echo "Running quality and render tests..."
+python -X utf8 tests/test_quality_and_render.py
+if [ $? -ne 0 ]; then
+  echo "FAIL: tests/test_quality_and_render.py"
+  exit 1
+fi
+
+echo "All tests passed."

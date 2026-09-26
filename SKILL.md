@@ -16,6 +16,8 @@ description: 公众号主编工作流：选题、大纲、素材、初稿、自�
 3. 查重与合规由 `quality/check_article.py` 硬校验：连续 13 字不重复，13 字片段重复率低于 25%，违禁词表读取 `references/sensitive/banned-words.txt`。任何 FAIL 都不能发布。
 4. 选题只允许先读 `references/private/topic-bank/index.md`，再读当前赛道映射到的文件；禁止读取全部 topic-bank 文件或旧版全量文件。热点搜索不可用时降级为「用户提供素材模式」，并标注「热点未核实」。
 5. 配图 3-5 张，优先级：真实截图 > 仓库脚本生成 > AI 生图；图片落盘到 `images/`，文章引用路径和 `meta.cover` 必须存在。
+
+   > ⚠ **注意：`image/` 是图片生成脚本的目录，`images/` 才是图片素材目录。跑错目录会找不到图片或把脚本当素材。二者只差一个 s，切勿混淆。**
 6. 每篇文章使用 `articles/<slug>/article.md` 和 `articles/<slug>/meta.json`；不新建根目录主稿。
 7. 新文章必须先走「赛道 → 主题 → 选配确认单」3 步强制挂起；进入创作后，只有选题、标题、终审、发布 4 处允许 HUMAN_IN_THE_LOOP。
 8. 发布只推草稿箱，不群发。首次推送自动新建草稿，后续默认更新同一草稿。

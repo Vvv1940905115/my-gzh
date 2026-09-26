@@ -7,6 +7,8 @@ import json
 import os
 import re
 import sys
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
@@ -32,6 +34,44 @@ from md_to_wechat import (
 
 
 WECHAT_API = "https://api.weixin.qq.com"
+
+TOKEN_CACHE_FILE = ROOT / "out" / "access-token.json"
+RETRY_DELAYS = [2, 4, 8]
+
+
+def with_retry(fn, max_retries=3):
+    """Retry a network call up to max_retries times with exponential backoff."""
+    for attempt in range(max_retries):
+        try:
+            return fn()
+        except (urllib.error.URLError, ConnectionError, TimeoutError, OSError) as exc:
+            if attempt == max_retries - 1:
+                raise
+            delay = RETRY_DELAYS[attempt]
+            print(f"  Network error (attempt {attempt + 1}/{max_retries}): {exc}")
+            print(f"  Retrying in {delay}s...")
+            time.sleep(delay)
+
+
+def read_cached_token():
+    """Return a cached access token if still valid (5 min safety buffer)."""
+    if not TOKEN_CACHE_FILE.exists():
+        return None
+    try:
+        data = json.loads(TOKEN_CACHE_FILE.read_text(encoding="utf-8"))
+        expires_at = data.get("expires_at", 0)
+        if time.time() < expires_at - 300:
+            return str(data["access_token"]).strip()
+    except (json.JSONDecodeError, KeyError, OSError):
+        pass
+    return None
+
+
+def save_token_to_cache(token, expires_in=7200):
+    """Persist access token and expiry timestamp to the cache file."""
+    TOKEN_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    data = {"access_token": token, "expires_at": time.time() + expires_in}
+    TOKEN_CACHE_FILE.write_text(json.dumps(data), encoding="utf-8")
 
 
 def default_config_paths():
@@ -161,7 +201,7 @@ def post_video_file(url, file_path, title, introduction):
 
 def upload_video(token, video_path, title="", introduction=""):
     url = f"{WECHAT_API}/cgi-bin/material/add_material?type=video&access_token={token}"
-    data = post_video_file(url, video_path, title, introduction)
+    data = with_retry(lambda: post_video_file(url, video_path, title, introduction))
     media_id = data.get("media_id")
     if not media_id:
         raise RuntimeError("Video media_id was not returned.")
@@ -202,6 +242,10 @@ def build_video_iframe(vid, cover_url=""):
 
 
 def get_access_token(config):
+    cached = read_cached_token()
+    if cached:
+        print("Using cached access token.")
+        return cached
     query = urllib.parse.urlencode(
         {
             "grant_type": "client_credential",
@@ -209,10 +253,12 @@ def get_access_token(config):
             "secret": config["app_secret"],
         }
     )
-    data = get_json(f"{WECHAT_API}/cgi-bin/token?{query}")
+    data = with_retry(lambda: get_json(f"{WECHAT_API}/cgi-bin/token?{query}"))
     token = data.get("access_token")
     if not token:
         raise RuntimeError("Access token was not returned.")
+    expires_in = int(data.get("expires_in", 7200))
+    save_token_to_cache(token, expires_in)
     return token
 
 
@@ -235,7 +281,7 @@ def extract_images(article_text, cover_path):
 
 def upload_cover(token, cover_path):
     url = f"{WECHAT_API}/cgi-bin/material/add_material?type=image&access_token={token}"
-    data = post_file(url, cover_path)
+    data = with_retry(lambda: post_file(url, cover_path))
     media_id = data.get("media_id")
     if not media_id:
         raise RuntimeError("Cover media_id was not returned.")
@@ -244,7 +290,7 @@ def upload_cover(token, cover_path):
 
 def upload_body_image(token, image_path):
     url = f"{WECHAT_API}/cgi-bin/media/uploadimg?access_token={token}"
-    data = post_file(url, image_path)
+    data = with_retry(lambda: post_file(url, image_path))
     url = str(data.get("url", "")).replace("http://", "https://")
     if not url:
         raise RuntimeError("Image URL was not returned.")
