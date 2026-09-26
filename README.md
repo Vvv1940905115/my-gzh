@@ -11,6 +11,8 @@
 「必须挂起等待确认」「必须达到 85 分」「不得编造数据」这类要求，如果只是写进提示词，执行与否全看模型自觉。所以本项目把它们拆成两半：
 
 <img width="1386" height="572" alt="螢幕擷取畫面 2026-09-26 190147" src="https://github.com/user-attachments/assets/fda3c8da-81c5-435c-b58e-b1e9d32bea4a" />
+<img width="1302" height="516" alt="螢幕擷取畫面 2026-09-26 191010" src="https://github.com/user-attachments/assets/a0cd09a0-5362-4d7c-9acf-2981ec299df9" />
+
 
 | 环节 | 由谁负责 | 落地脚本 |
 | --- | --- | --- |
