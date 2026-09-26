@@ -1,6 +1,6 @@
 # my-gzh 公众号内容工作台
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue) ![Dependencies](https://img.shields.io/badge/Markdown-3.11-blue) ![License](https://img.shields.io/badge/License-MIT-yellow)
+![Python](https://img.shields.io/badge/Python-3.11%2B-blue) ![Dependencies](https://img.shields.io/badge/Markdown-3.11-blue) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 一个本地优先的公众号内容生产工程：选题、写作、质检、配图、转微信 HTML、推送草稿箱。核心转换和推送脚本使用 Python 标准库与 Markdown 3.11；参考文章抓取和部分配图脚本需要可选依赖。
 
@@ -70,7 +70,7 @@ my-gzh/
 
 ## 环境准备
 
-安装 Python 3.10 或更高版本。Windows 安装时勾选 `Add python.exe to PATH`。
+安装 Python 3.11 或更高版本。Windows 安装时勾选 `Add python.exe to PATH`。
 
 ```text
 python --version
