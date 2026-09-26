@@ -1,4 +1,4 @@
-# my-gzh 公众号内容工作台
+﻿# my-gzh 公众号内容工作台
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue) ![Dependencies](https://img.shields.io/badge/Markdown-3.11-blue) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
@@ -33,6 +33,7 @@
 | `image/` | 抓图、候选图管理、封面裁剪、本地示意图生成 |
 | `tools/` | 参考文章抓取与只读分析 |
 | `references/` | 公共方法、私密素材、敏感词与平台规则 |
+| `learned/` | L2 记忆层：发布数据、热点选题、改写技巧跨篇沉淀 |
 | `config/` | 依赖清单和公众号配置模板 |
 
 ## 目录结构
@@ -54,23 +55,36 @@ my-gzh/
 │   └── wechat-config.example.json
 ├── lib/
 │   └── common.py
+├── learned/
+│   ├── hot-topics.md          # 热门选题记录（选题阶段读取）
+│   ├── performance.md         # 文章数据表现（发布后自动追加）
+│   └── rewrite-patterns.md    # 改写技巧与爆款结构（写作阶段读取）
 ├── publish/
 │   ├── md_to_wechat.py
 │   ├── wechat_render.py
+│   ├── wechat_api.py          # 微信 API 网络层（token 缓存 + 重试）
+│   ├── wechat_upload.py       # 图片 / 视频上传
+│   ├── wechat_push.py         # 推送业务流
 │   └── push_wechat_draft.py
 ├── quality/
+│   ├── init_article.py        # 从模板初始化稿件目录
 │   ├── new_article.py        # 建稿并初始化 state.json
 │   ├── stage_gate.py         # 阶段闸门：track→topic→config→draft→qa→publish
 │   ├── check_article.py      # 查重、违禁词、配图资产硬校验
 │   ├── qa_report.py          # 质检报告落盘（评分双轨）
+│   ├── post_publish.py        # 发布后数据沉淀到 learned/performance.md
+│   ├── format.py              # Markdown 转微信 HTML（独立入口）
+│   ├── token_count.py         # 字数 / 段落长度检查
 │   └── check_assets.py
 ├── workflow/
 │   ├── run_ai_workflow.py
 │   ├── content_generator.py
 │   └── cover_generator.py
 ├── tests/
+│   ├── conftest.py
 │   ├── test_contracts.py
 │   ├── test_quality_and_render.py
+│   ├── test_stage_gate.py
 │   └── test_workflow.py
 ├── image/           # 图片工具与主题定义；本地素材放 images/
 │   ├── themes.json
@@ -394,19 +408,24 @@ python tools/analyze_reference.py --slug my-new-post
 | `references/private/` | 知识库、选题库、历史归档 | 不入库 |
 | `references/sensitive/` | 违禁词、平台规则 | 不入库 |
 
+## L2 记忆层（learned/）
+
+`learned/` 是跨篇文章的经验沉淀层，让系统越用越懂你的赛道和受众。
+
+| 文件 | 写入时机 | 读取时机 |
+| --- | --- | --- |
+| `performance.md` | 发布成功后由 `quality/post_publish.py` 自动追加 | 选题阶段：读最近 10 条，参考历史数据 |
+| `hot-topics.md` | 选题阶段由 Agent 或人工追加 | 选题阶段：扫最近热点，避免重复选题 |
+| `rewrite-patterns.md` | 查重改写阶段由 Agent 或人工追加 | 写作阶段：参考已验证的改写技巧和爆款结构 |
+
+发布闭环：`push_wechat_draft.py` 推送成功后自动调用 `post_publish.py --slug <slug>`，把发布日期、标题、赛道写入 `performance.md`。初始阅读量为 0，后续可手动更新真实数据。
+
 ## 数据备份
 
 `references/private/` 与 `references/sensitive/` 不入库，只存在于本机磁盘；磁盘一旦损坏，归档、选题库和知识库会直接丢失。请定期执行：
 
 ```text
-bash backup_private.sh               # Linux/macOS/Git Bash；--encrypt 用 AES-256 加密
-powershell -File backup_private.ps1  # Windows 无 bash 时的打包方案（用系统自带 tar）
-```
-
-加密功能需要 openssl 环境（Git Bash、Linux、macOS）。加密归档的还原命令：
-
-```text
-openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in private-<时间戳>.tar.gz.enc -out restore.tar.gz
+powershell -File backup_private.ps1  # Windows 打包方案（用系统自带 tar）
 ```
 
 生成后把归档复制到云盘、私有 Git 仓库或另一台机器。`backups/` 已在 .gitignore 中排除，建议每周至少备份一次，发布重要文章后立即备份。
