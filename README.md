@@ -48,14 +48,25 @@ my-gzh/
 ├── README.md
 ├── LICENSE
 ├── .gitignore
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── .githooks/
+│   └── pre-commit
+├── backup_private.ps1
 ├── articles/
+│   ├── state-template.json
 │   └── <slug>/
 │       ├── article.md
 │       ├── meta.json
 │       ├── state.json        # 阶段闸门状态
 │       └── qa-report.md      # 质检报告（硬指标脚本判定 + 软指标留痕）
 ├── config/
+│   ├── requirements.lock
 │   └── requirements.txt
+├── examples/
+│   ├── qa-soft-scores.example.json
+│   └── workflow-task.json
 ├── lib/
 │   └── common.py
 ├── learned/
@@ -70,6 +81,7 @@ my-gzh/
 │   ├── wechat_push.py         # 推送业务流
 │   └── push_wechat_draft.py
 ├── quality/
+│   ├── README.md
 │   ├── init_article.py        # 从模板初始化稿件目录
 │   ├── new_article.py        # 建稿并初始化 state.json
 │   ├── stage_gate.py         # 阶段闸门：track→topic→config→draft→qa→publish
