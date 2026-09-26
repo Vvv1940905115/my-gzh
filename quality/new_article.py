@@ -3,9 +3,9 @@
 """Create a new article skeleton with standard directory structure and meta.json.
 
 Usage:
-    python quality/new_article.py --slug my-post-title --title "文章标题"
-    python quality/new_article.py --slug my-post-title --title "文章标题" --author "作者名" --source "公众号：xxx"
-    python quality/new_article.py --slug my-post-title --title "文章标题" --cover images/cover.jpg --tags AI 职场
+    python quality/new_article.py --slug my-post-title --title "Article title"
+    python quality/new_article.py --slug my-post-title --title "Article title" --author "Author"
+    python quality/new_article.py --slug my-post-title --title "Article title" --cover images/cover.jpg --tags AI work
 """
 
 import argparse
@@ -20,25 +20,25 @@ ROOT = Path(__file__).resolve().parents[1]
 
 ARTICLE_TEMPLATE = """# {title}
 
-> 在这里写导语（前 100 字内要有钩子）。
+> Add a hook in the first 100 characters.
 
-## 第一节标题
+## First section
 
-正文内容…
+Body copy...
 
-## 第二节标题
+## Second section
 
-正文内容…
+Body copy...
 
 ---
 
 ![]({cover})
 
-图注：图片说明
+Caption: describe the image.
 
 ---
 
-> 金句或总结。
+> Closing insight or quote.
 """
 
 META_TEMPLATE = {
@@ -58,6 +58,45 @@ def safe_slug(value):
     return slug or "untitled"
 
 
+def create_article(
+    slug,
+    title,
+    summary="",
+    author="",
+    source="",
+    cover="images/cover.jpg",
+    tags=None,
+    force=False,
+):
+    """Create the standard article scaffold and return its paths."""
+    slug = safe_slug(slug)
+    article_dir = ROOT / "articles" / slug
+    article_file = article_dir / "article.md"
+    meta_file = article_dir / "meta.json"
+
+    if article_dir.exists() and not force:
+        raise FileExistsError(f"articles/{slug}/ already exists.")
+
+    article_dir.mkdir(parents=True, exist_ok=True)
+    meta = dict(META_TEMPLATE)
+    meta["title"] = title
+    meta["summary"] = summary
+    meta["author"] = author
+    meta["source"] = source
+    meta["cover"] = cover
+    meta["tags"] = tags or []
+
+    article_file.write_text(
+        ARTICLE_TEMPLATE.format(title=title, cover=cover),
+        encoding="utf-8",
+    )
+    meta_file.write_text(
+        json.dumps(meta, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return {"slug": slug, "article": article_file, "meta": meta_file}
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -72,28 +111,24 @@ def main():
     parser.add_argument("--force", action="store_true", help="Overwrite existing files")
     args = parser.parse_args()
 
-    slug = safe_slug(args.slug)
-    article_dir = ROOT / "articles" / slug
-    article_file = article_dir / "article.md"
-    meta_file = article_dir / "meta.json"
-
-    if article_dir.exists() and not args.force:
-        print(f"ERROR: articles/{slug}/ already exists. Use --force to overwrite.")
+    try:
+        result = create_article(
+            slug=args.slug,
+            title=args.title,
+            summary=args.summary,
+            author=args.author,
+            source=args.source,
+            cover=args.cover,
+            tags=args.tags if args.tags else ["AI"],
+            force=args.force,
+        )
+    except FileExistsError:
+        print(f"ERROR: articles/{safe_slug(args.slug)}/ already exists. Use --force to overwrite.")
         sys.exit(1)
 
-    article_dir.mkdir(parents=True, exist_ok=True)
-
-    meta = dict(META_TEMPLATE)
-    meta["title"] = args.title
-    meta["summary"] = args.summary
-    meta["author"] = args.author
-    meta["source"] = args.source
-    meta["cover"] = args.cover
-    meta["tags"] = args.tags if args.tags else ["AI"]
-
-    article_text = ARTICLE_TEMPLATE.format(title=args.title, cover=args.cover)
-    article_file.write_text(article_text, encoding="utf-8")
-    meta_file.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    slug = result["slug"]
+    article_file = result["article"]
+    meta_file = result["meta"]
 
     print(f"Created: {article_file.relative_to(ROOT)}")
     print(f"Created: {meta_file.relative_to(ROOT)}")

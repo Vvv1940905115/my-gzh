@@ -177,30 +177,24 @@ def save_last_draft_id(media_id, path=None):
     path.write_text(media_id, encoding="utf-8")
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Push an article to the WeChat draft box"
-    )
-    parser.add_argument("--config", default=None)
-    parser.add_argument(
-        "--article",
-        default=None,
-        help="Markdown file to push (default: article.md). Meta file is inferred.",
-    )
-    parser.add_argument(
-        "--meta",
-        default=None,
-        help="Meta JSON file (default: meta.json, or inferred from --article).",
-    )
-    parser.add_argument("--draft-media-id", default=None)
-    parser.add_argument("--new-draft", action="store_true", help="Create a new draft instead of updating the last one.")
-    parser.add_argument("--delete-draft-id", default=None)
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Render HTML and validate images without calling the WeChat API.")
-    args = parser.parse_args()
+def push_draft(
+    article=None,
+    meta=None,
+    config=None,
+    config_path=None,
+    draft_media_id=None,
+    new_draft=False,
+    delete_draft_id=None,
+    dry_run=False,
+    interactive=True,
+):
+    """Create or update one WeChat draft and return the reusable artifacts.
 
-    article_file = resolve_path(args.article, "article.md")
-    meta_file = resolve_path(args.meta) if args.meta else default_meta_for(article_file)
+    ``interactive=False`` is used by the AI workflow so unattended runs do not
+    stop at the manual cleanup/archive confirmation prompts.
+    """
+    article_file = resolve_path(article, "article.md")
+    meta_file = resolve_path(meta) if meta else default_meta_for(article_file)
     if not article_file.exists():
         raise SystemExit(f"Article file not found: {article_file}")
     if not meta_file.exists():
@@ -209,26 +203,29 @@ def main():
     id_file = draft_id_path(record_stem)
     out_stem = record_stem
 
-    if args.config:
-        custom = Path(args.config)
-        data = json.loads(custom.read_text(encoding="utf-8"))
-        config = {
-            "app_id": str(data["app_id"]).strip(),
-            "app_secret": str(data["app_secret"]).strip(),
-            "path": str(custom),
-        }
-        if "YOUR_" in config["app_id"] or "YOUR_" in config["app_secret"]:
-            raise SystemExit(
-                f"Config still contains placeholders: {custom}\n"
-                "Replace YOUR_APP_ID_HERE and YOUR_APP_SECRET_HERE with real values."
-            )
-        if "你的" in config["app_id"] or "你的" in config["app_secret"]:
-            raise SystemExit(
-                f"Config still contains placeholders: {custom}\n"
-                "Replace the placeholder AppID and AppSecret with real values."
-            )
-    else:
-        config = load_config()
+    if config is None:
+        if config_path:
+            custom = Path(config_path)
+            data = json.loads(custom.read_text(encoding="utf-8"))
+            config = {
+                "app_id": str(data["app_id"]).strip(),
+                "app_secret": str(data["app_secret"]).strip(),
+                "path": str(custom),
+            }
+            if "YOUR_" in config["app_id"] or "YOUR_" in config["app_secret"]:
+                raise SystemExit(
+                    f"Config still contains placeholders: {custom}\n"
+                    "Replace YOUR_APP_ID_HERE and YOUR_APP_SECRET_HERE with real values."
+                )
+            if "你的" in config["app_id"] or "你的" in config["app_secret"]:
+                raise SystemExit(
+                    f"Config still contains placeholders: {custom}\n"
+                    "Replace the placeholder AppID and AppSecret with real values."
+                )
+        elif dry_run:
+            config = {"path": "dry-run"}
+        else:
+            config = load_config()
 
     print(f"Article: {article_file}")
     print(f"Meta:    {meta_file}")
@@ -241,9 +238,9 @@ def main():
     if not images:
         raise SystemExit("No local images found to upload.")
 
-    print(f"Using config: {config['path']}")
+    print(f"Using config: {config.get('path', 'injected config')}")
 
-    if args.dry_run:
+    if dry_run:
         print("\n=== DRY RUN MODE: no API calls will be made ===")
         print(f"Article: {article_file}")
         print(f"Meta:    {meta_file}")
@@ -269,18 +266,26 @@ def main():
             "only_fans_can_comment": 0,
         }
         print("\nDraft payload (title/author/digest):")
-        for k, v in payload.items():
-            print(f"  {k}: {v}")
+        for key, value in payload.items():
+            print(f"  {key}: {value}")
         print(f"\nContent length: {len(content)} chars")
         out_dir = ROOT / "out"
         out_dir.mkdir(parents=True, exist_ok=True)
-        (out_dir / f"{out_stem}.wechat.dry-run.html").write_text(
+        preview_path = out_dir / f"{out_stem}.wechat.dry-run.html"
+        preview_path.write_text(
             build_preview(meta.get("title", "Dry Run"), content, []),
             encoding="utf-8",
         )
-        print(f"\nPreview written: out/{out_stem}.wechat.dry-run.html")
+        print(f"\nPreview written: {preview_path.relative_to(ROOT)}")
         print("Dry run complete. No API calls were made.")
-        return
+        return {
+            "record_stem": record_stem,
+            "article_file": str(article_file),
+            "meta_file": str(meta_file),
+            "preview_file": str(preview_path),
+            "images": images,
+            "dry_run": True,
+        }
 
     print("Requesting access token...")
     token = get_access_token(config)
@@ -353,8 +358,8 @@ def main():
         "only_fans_can_comment": 0,
     }
 
-    draft_id = args.draft_media_id
-    if draft_id is None and not args.new_draft:
+    draft_id = draft_media_id
+    if draft_id is None and not new_draft:
         draft_id = read_last_draft_id(id_file)
 
     if draft_id:
@@ -374,32 +379,75 @@ def main():
         save_last_draft_id(media_id, id_file)
         print(f"Draft id file: {id_file}")
 
-    if args.delete_draft_id:
-        print(f"Deleting duplicate draft: {args.delete_draft_id}")
-        delete_draft(token, args.delete_draft_id)
+    if delete_draft_id:
+        print(f"Deleting duplicate draft: {delete_draft_id}")
+        delete_draft(token, delete_draft_id)
 
     out_dir = ROOT / "out"
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / f"{out_stem}.wechat.uploaded.html").write_text(
-        build_preview(meta.get("title", ""), content, []),
-        encoding="utf-8",
-    )
-    (out_dir / f"{out_stem}.wechat.html").write_text(
-        build_preview(meta.get("title", ""), content, []),
-        encoding="utf-8",
-    )
-    (out_dir / f"{out_stem}.wechat.fragment.html").write_text(
-        content + "\n",
-        encoding="utf-8",
-    )
+    uploaded_preview = out_dir / f"{out_stem}.wechat.uploaded.html"
+    preview_file = out_dir / f"{out_stem}.wechat.html"
+    fragment_file = out_dir / f"{out_stem}.wechat.fragment.html"
+    preview = build_preview(meta.get("title", ""), content, [])
+    uploaded_preview.write_text(preview, encoding="utf-8")
+    preview_file.write_text(preview, encoding="utf-8")
+    fragment_file.write_text(content + "\n", encoding="utf-8")
 
     print("Draft saved successfully.")
     print(f"Draft media_id: {media_id}")
     print(f"Cover media_id: {thumb_media_id}")
     for path, url in image_map.items():
         print(f"Image URL: {path} -> {url}")
-    confirm_cleanup(record_stem)
-    confirm_archive(article_file, meta_file)
+    if interactive:
+        confirm_cleanup(record_stem)
+        confirm_archive(article_file, meta_file)
+    else:
+        print("Interactive review skipped; local push records were kept.")
+
+    return {
+        "record_stem": record_stem,
+        "article_file": str(article_file),
+        "meta_file": str(meta_file),
+        "preview_file": str(preview_file),
+        "fragment_file": str(fragment_file),
+        "draft_media_id": media_id,
+        "cover_media_id": thumb_media_id,
+        "video_media_id": video_media_id,
+        "image_map": image_map,
+        "dry_run": False,
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Push an article to the WeChat draft box"
+    )
+    parser.add_argument("--config", default=None)
+    parser.add_argument(
+        "--article",
+        default=None,
+        help="Markdown file to push (default: article.md). Meta file is inferred.",
+    )
+    parser.add_argument(
+        "--meta",
+        default=None,
+        help="Meta JSON file (default: meta.json, or inferred from --article).",
+    )
+    parser.add_argument("--draft-media-id", default=None)
+    parser.add_argument("--new-draft", action="store_true", help="Create a new draft instead of updating the last one.")
+    parser.add_argument("--delete-draft-id", default=None)
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Render HTML and validate images without calling the WeChat API.")
+    args = parser.parse_args()
+    push_draft(
+        article=args.article,
+        meta=args.meta,
+        config_path=args.config,
+        draft_media_id=args.draft_media_id,
+        new_draft=args.new_draft,
+        delete_draft_id=args.delete_draft_id,
+        dry_run=args.dry_run,
+    )
 
 
 if __name__ == "__main__":

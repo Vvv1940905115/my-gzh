@@ -13,6 +13,7 @@
 | `articles/` | 按稿件 slug 存放正文和元信息 |
 | `publish/` | Markdown 转微信 HTML、上传图片并推送公众号草稿 |
 | `quality/` | 发布前综合质检 |
+| `workflow/` | AI 自动化任务编排：生成、质检、配图、预览、推送 |
 | `image/` | 抓图、候选图管理、封面裁剪、本地示意图生成 |
 | `tools/` | 参考文章抓取与只读分析 |
 | `references/` | 公共方法、私密素材、敏感词与平台规则 |
@@ -42,9 +43,14 @@ my-gzh/
 ├── quality/
 │   ├── check_article.py
 │   └── check_assets.py
+├── workflow/
+│   ├── run_ai_workflow.py
+│   ├── content_generator.py
+│   └── cover_generator.py
 ├── tests/
 │   ├── test_contracts.py
-│   └── test_quality_and_render.py
+│   ├── test_quality_and_render.py
+│   └── test_workflow.py
 ├── image/           # 图片工具与主题定义；本地素材放 images/
 │   ├── themes.json
 │   ├── make_theme_images.py
@@ -353,6 +359,80 @@ openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in private-<时间戳>.tar.gz.
 ```
 
 生成后把归档复制到云盘、私有 Git 仓库或另一台机器。`backups/` 已在 .gitignore 中排除，建议每周至少备份一次，发布重要文章后立即备份。
+
+## AI 自动化工作流
+
+`workflow/` 把稿件脚手架、AI 写作、本地封面和示意图、质检、HTML 预览和草稿推送串成一条可审计流程。它只创建草稿，不会群发。
+
+### 运行方式
+
+先生成内容和预览，停在人工复核：
+
+```text
+python workflow/run_ai_workflow.py --task examples/workflow-task.json --force
+```
+
+推送前离线演练，渲染 HTML 并校验图片，但不调用公众号接口：
+
+```text
+python workflow/run_ai_workflow.py --task examples/workflow-task.json --push --dry-run --force
+```
+
+确认无误后推送到公众号草稿箱：
+
+```text
+python workflow/run_ai_workflow.py --task examples/workflow-task.json --push --new-draft --force
+```
+
+也可以用标准输入传入任务：
+
+```text
+type examples\workflow-task.json | python workflow/run_ai_workflow.py --task -
+```
+
+### 任务 JSON
+
+```json
+{
+  "slug": "ai-workflow-example",
+  "title": "用 AI 工作流稳定产出公众号内容",
+  "brief": "一句话说明选题。",
+  "audience": "目标读者",
+  "tone": "务实、具体",
+  "keywords": ["AI", "自动化"],
+  "requirements": ["不编造数据", "保留行动建议"],
+  "tags": ["AI"],
+  "diagram": {
+    "title": "流程标题",
+    "items": ["接收任务", "调用 Skill", "自动执行", "输出结果", "复核归档"]
+  }
+}
+```
+
+如果任务里没有 `content_markdown`，工作流会调用 OpenAI 兼容接口，需要先设置：
+
+```text
+OPENAI_API_KEY=你的 API Key
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MODEL=gpt-4o-mini
+```
+
+`content_markdown` 适合离线测试或由外部 Agent 提供正文；`content_file` 可以指向已有 Markdown 文件。工作流会从正文提取摘要，生成 `articles/<slug>/` 脚手架、`images/ai-<slug>-cover.png` 和可选流程图，并执行违禁词、图片、引用来源和查重检查。
+
+### 结果与触发器
+
+默认输出：
+
+```text
+articles/<slug>/article.md
+articles/<slug>/meta.json
+out/<slug>.workflow.html
+out/workflow-logs/<run_id>.json
+```
+
+`review_required` 表示已生成但未推送；`dry_run` 表示推送演练成功；`draft_created` 表示已进入公众号草稿箱。每次失败也会写审计日志，包含阶段和 traceback。
+
+定时器、公众号菜单回调或消息适配器只需要生成同一个任务 JSON，然后调用 `python workflow/run_ai_workflow.py --task <任务文件> --push`。无人工值守时建议默认 `--dry-run`，再由人工确认后二次执行真实推送。
 
 ## 常用流程
 

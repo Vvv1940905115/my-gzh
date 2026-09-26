@@ -1,0 +1,23 @@
+{
+  "slug": "ai-workflow-example",
+  "title": "用 AI 工作流稳定产出公众号内容",
+  "brief": "把选题、写作、质检、配图、预览和草稿推送串成一条可复盘的流水线。",
+  "audience": "想要降低公众号运营成本的个人作者",
+  "tone": "务实、具体、不夸张",
+  "keywords": ["AI", "公众号", "自动化"],
+  "requirements": [
+    "解释每个阶段的输入和输出",
+    "强调人工复核和数据核查"
+  ],
+  "tags": ["AI", "自动化"],
+  "diagram": {
+    "title": "AI 自动化工作流",
+    "items": [
+      {"title": "接收任务", "body": "JSON 或 API"},
+      {"title": "调用 Skill", "body": "选题与写作"},
+      {"title": "自动执行", "body": "质检和配图"},
+      {"title": "输出结果", "body": "HTML 预览"},
+      {"title": "复核归档", "body": "推送草稿"}
+    ]
+  }
+}

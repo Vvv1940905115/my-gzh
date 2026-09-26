@@ -11,3 +11,4 @@ jobs:
       - run: pip install -r config/requirements.lock
       - run: python tests/test_contracts.py
       - run: python tests/test_quality_and_render.py
+      - run: python tests/test_workflow.py
