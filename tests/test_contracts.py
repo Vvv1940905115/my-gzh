@@ -24,7 +24,8 @@ def load_module(name, relative):
 
 
 md = load_module("test_md_to_wechat", "publish/md_to_wechat.py")
-push = load_module("test_push_wechat_draft", "publish/push_wechat_draft.py")
+push = load_module("test_push_wechat_draft", "publish/wechat_push.py")
+wrapper = load_module("test_push_wrapper", "publish/push_wechat_draft.py")
 quality = load_module("test_check_article", "quality/check_article.py")
 
 
@@ -85,6 +86,8 @@ def run_tests(case):
 
         case.check("safe_slug keeps URL-safe text", md.safe_slug("中文 Slug!") == "slug")
         case.check("empty slug falls back to article", md.safe_slug("!!!") == "article")
+
+        case.check("push wrapper exposes CLI entry", callable(wrapper.main))
 
         case.check(
             "draft id is per-slug",

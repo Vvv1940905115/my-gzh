@@ -25,7 +25,8 @@ def load_module(name, relative):
 
 
 md = load_module("test_wechat_render_module", "publish/wechat_render.py")
-push = load_module("test_push_api_module", "publish/push_wechat_draft.py")
+push = load_module("test_push_api_module", "publish/wechat_push.py")
+import wechat_api
 quality = load_module("test_quality_functions", "quality/check_article.py")
 
 
@@ -144,7 +145,9 @@ def test_push_helpers(case):
     root = Path(tempfile.mkdtemp(prefix="wechat-push-"))
     old_root = push.ROOT
     old_home = os.environ.get("CODEX_HOME")
+    old_cache_file = wechat_api.TOKEN_CACHE_FILE
     push.ROOT = root
+    wechat_api.TOKEN_CACHE_FILE = root / "out" / "access-token.json"
     os.environ["CODEX_HOME"] = str(root / ".codex")
     try:
         placeholder_dir = root / ".codex" / "skills" / "wechat-publisher"
@@ -168,15 +171,16 @@ def test_push_helpers(case):
         config = push.load_config()
         case.check("push loads valid credentials", config["app_id"] == "wx123")
 
-        original_get_json = push.get_json
-        push.get_json = lambda url: {"access_token": "token-from-mock"}
+        original_get_json = wechat_api.get_json
+        wechat_api.get_json = lambda url: {"access_token": "token-from-mock"}
         try:
             token = push.get_access_token(config)
         finally:
-            push.get_json = original_get_json
+            wechat_api.get_json = original_get_json
         case.check("access token API uses injected mock", token == "token-from-mock")
     finally:
         push.ROOT = old_root
+        wechat_api.TOKEN_CACHE_FILE = old_cache_file
         if old_home is None:
             os.environ.pop("CODEX_HOME", None)
         else:
