@@ -188,11 +188,78 @@ def test_push_helpers(case):
         shutil.rmtree(root, ignore_errors=True)
 
 
+def test_assets(case):
+    assets = load_module("test_check_assets", "quality/check_assets.py")
+    root = Path(tempfile.mkdtemp(prefix="wechat-assets-"))
+    old_quality_root = quality.ROOT
+    quality.ROOT = root
+    quality_dir = str(PROJECT_ROOT / "quality")
+    if quality_dir not in sys.path:
+        sys.path.insert(0, quality_dir)
+    import check_article
+    old_check_root = check_article.ROOT
+    check_article.ROOT = root
+    old_cwd = os.getcwd()
+    os.chdir(root)
+    try:
+        demo_dir = root / "articles" / "demo"
+        bad_dir = root / "articles" / "bad"
+        (root / "images").mkdir()
+        demo_dir.mkdir(parents=True)
+        bad_dir.mkdir(parents=True)
+        meta = {
+            "title": "t", "summary": "s", "author": "a",
+            "source": "x", "cover": "images/cover-demo.jpg", "tags": [],
+        }
+        bad_meta = dict(meta, cover="images/cover-bad.jpg")
+        (demo_dir / "article.md").write_text("![pic](images/pic-demo.png)\n", encoding="utf-8")
+        (demo_dir / "meta.json").write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+        (bad_dir / "article.md").write_text(
+            "![broken](images/broken-bad.png)\n![bmp](images/pic-bad.bmp)\n", encoding="utf-8"
+        )
+        (bad_dir / "meta.json").write_text(json.dumps(bad_meta, ensure_ascii=False), encoding="utf-8")
+
+        assets.Image.new("RGB", (940, 400)).save(root / "images" / "cover-demo.jpg")
+        assets.Image.new("RGB", (600, 400)).save(root / "images" / "pic-demo.png")
+        assets.Image.new("RGB", (800, 600)).save(root / "images" / "cover-bad.jpg")
+        assets.Image.new("RGB", (600, 400)).save(root / "images" / "pic-bad.bmp")
+        (root / "images" / "broken-bad.png").write_bytes(b"not an image")
+
+        problems = assets.scan_articles(root)
+        joined = "\n".join(f"{loc}: {issue}" for loc, issue in problems)
+        case.check(
+            "assets accepts valid cover ratio and body image",
+            not any(loc.startswith("articles/demo") for loc, _ in problems),
+            joined,
+        )
+        case.check(
+            "assets rejects off-ratio cover",
+            any("articles/bad" in loc and "ratio" in issue for loc, issue in problems),
+            joined,
+        )
+        case.check(
+            "assets rejects non-web image format",
+            any("articles/bad" in loc and "unsupported image format" in issue for loc, issue in problems),
+            joined,
+        )
+        case.check(
+            "assets rejects corrupt image",
+            any("articles/bad" in loc and "corrupt or unreadable" in issue for loc, issue in problems),
+            joined,
+        )
+    finally:
+        os.chdir(old_cwd)
+        quality.ROOT = old_quality_root
+        check_article.ROOT = old_check_root
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def main():
     case = ContractTest()
     test_quality(case)
     test_render(case)
     test_push_helpers(case)
+    test_assets(case)
     if case.failures:
         print(f"{len(case.failures)} quality/render test(s) failed")
         return 1
