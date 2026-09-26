@@ -437,6 +437,8 @@ def main():
     parser.add_argument("--draft-media-id", default=None)
     parser.add_argument("--new-draft", action="store_true", help="Create a new draft instead of updating the last one.")
     parser.add_argument("--delete-draft-id", default=None)
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Render HTML and validate images without calling the WeChat API.")
     args = parser.parse_args()
 
     article_file = resolve_path(args.article, "article.md")
@@ -482,6 +484,46 @@ def main():
         raise SystemExit("No local images found to upload.")
 
     print(f"Using config: {config['path']}")
+
+    if args.dry_run:
+        print("\n=== DRY RUN MODE: no API calls will be made ===")
+        print(f"Article: {article_file}")
+        print(f"Meta:    {meta_file}")
+        print(f"Record key: {record_stem}")
+        missing = [img for img in images if not (ROOT / img).exists()]
+        if missing:
+            print(f"\nWARNING: {len(missing)} image(s) not found:")
+            for img in missing:
+                print(f"  MISSING: {img}")
+        else:
+            print(f"\nAll {len(images)} image(s) found.")
+        cover = ROOT / str(meta.get("cover", ""))
+        if not cover.exists():
+            print(f"WARNING: Cover image not found: {cover}")
+        content = render_article(article_text, {})
+        content += "\n" + render_footer(meta)
+        payload = {
+            "title": meta.get("title", ""),
+            "author": meta.get("author", ""),
+            "digest": meta.get("summary", ""),
+            "thumb_media_id": "<would-be-uploaded>",
+            "need_open_comment": 1,
+            "only_fans_can_comment": 0,
+        }
+        print("\nDraft payload (title/author/digest):")
+        for k, v in payload.items():
+            print(f"  {k}: {v}")
+        print(f"\nContent length: {len(content)} chars")
+        out_dir = ROOT / "out"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / f"{out_stem}.wechat.dry-run.html").write_text(
+            build_preview(meta.get("title", "Dry Run"), content, []),
+            encoding="utf-8",
+        )
+        print(f"\nPreview written: out/{out_stem}.wechat.dry-run.html")
+        print("Dry run complete. No API calls were made.")
+        return
+
     print("Requesting access token...")
     token = get_access_token(config)
 
