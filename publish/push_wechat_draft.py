@@ -19,14 +19,13 @@ for _path in (str(_PUBLISH_DIR), str(_PROJECT_ROOT)):
         sys.path.insert(0, _path)
 
 from lib.common import resolve_path as _resolve_path  # noqa: E402
+from wechat_render import render_article  # noqa: E402
 from md_to_wechat import (
     ROOT,
     article_slug,
     build_preview,
     default_meta_for,
     make_local_srcs_relative,
-    parse_blocks,
-    render_blocks,
     render_footer,
     safe_slug,
 )
@@ -332,8 +331,7 @@ def render_content(image_map, article_path=None, meta_path=None):
     meta_file = Path(meta_path) if meta_path else ROOT / "meta.json"
     article_file = Path(article_path) if article_path else ROOT / "article.md"
     meta = json.loads(meta_file.read_text(encoding="utf-8"))
-    blocks = parse_blocks(article_file.read_text(encoding="utf-8").splitlines())
-    content = render_blocks(blocks, image_map)
+    content = render_article(article_file.read_text(encoding="utf-8"), image_map)
     content += "\n" + render_footer(meta)
     return make_local_srcs_relative(content, ROOT / "out"), meta
 
