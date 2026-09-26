@@ -65,6 +65,11 @@ def test_quality(case):
         case.check("banned words load table rows", words == [("强制", "高", "替换"), ("提示", "中", "确认")], str(words))
         case.check("high risk word blocks publish", not quality.banned_words_check("不要强制", {}, words))
         case.check("medium risk word only warns", quality.banned_words_check("不要提示", {}, words))
+
+        missing_source = quality.citation_warnings("平台新增了 1200 万人。")
+        with_source = quality.citation_warnings("平台新增了 1200 万人，来源：官网报告。")
+        case.check("data paragraph without source warns", missing_source == ["平台新增了 1200 万人。"], str(missing_source))
+        case.check("data paragraph with source passes", with_source == [], str(with_source))
     finally:
         quality.ROOT = old_root
         shutil.rmtree(root, ignore_errors=True)

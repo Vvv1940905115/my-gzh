@@ -40,6 +40,7 @@ python quality/check_article.py --article articles/<slug>/article.md --meta arti
 - 查重来源默认读 `references/private/archive/`，也可用 `--sources` 指定文件或目录。
 - 违禁词硬校验默认读 `references/sensitive/banned-words.txt`（格式：词|级别|建议），扫描正文与 meta 标题/摘要；高风险词命中直接 FAIL，中低风险列入待用户确认。
 - 同时校验文章引用的本地图片和 `meta.cover` 是否真实存在。
+- 引用来源检查会扫描含百分比、倍数、金额、人数等数据的段落；缺来源标记时输出 WARN，可用 `--skip-citations` 显式跳过。该警告必须人工补充或确认，不得当作已通过事实核查。
 - 任何一项 FAIL 都不能进入发布；没有查重来源时只做违禁词与资产检查，并在报告注明。
 
 ## 图片生成与抓取
@@ -62,9 +63,11 @@ python image/fetch_images.py crop --input images/<src> --output images/cover.jpg
 
 ```powershell
 python tests/test_contracts.py
+python tests/test_quality_and_render.py
 python quality/check_assets.py
 ```
 
 - `tests/test_contracts.py` 覆盖 `articles/<slug>/article.md`、同目录 `meta.json`、slug 覆盖、根目录兜底、哈希唯一键、草稿 ID 文件名和图片相对路径解析。
+- `tests/test_quality_and_render.py` 覆盖查重、违禁词分级、引用来源警告、公众号 HTML 渲染结构和推送 API 凭据校验（通过 mock 隔离网络）。
 - `quality/check_assets.py` 遍历 `articles/*/article.md`，检查 `meta.json`、封面和正文图片引用，并把缺失清单写入 `out/missing-assets.txt`。
 - 缺失资产必须先补齐或在终审报告中明确列为阻塞项，不得假装通过。

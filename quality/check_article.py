@@ -179,6 +179,36 @@ def banned_words_check(article_text, meta, words):
     return True
 
 
+def citation_warnings(article_text):
+    """Return paragraphs that state data without a visible source marker."""
+    without_code = re.sub(r"```.*?```", " ", article_text, flags=re.S)
+    data_pattern = re.compile(
+        r"\d+(?:\.\d+)?\s*(?:%|％|倍|亿元|万元|万人|亿次)"
+    )
+    source_pattern = re.compile(
+        r"(来源\s*[:：]|https?://|据.{1,30}报道|引用自.{1,30})"
+    )
+    warnings = []
+    for paragraph in re.split(r"\n\s*\n", without_code):
+        paragraph = paragraph.strip()
+        if paragraph and data_pattern.search(paragraph) and not source_pattern.search(paragraph):
+            warnings.append(paragraph)
+    return warnings
+
+
+def citations_check(article_text):
+    warnings = citation_warnings(article_text)
+    print("引用来源检查: 数据段落 %d 个，缺来源标记 %d 个" % (len(warnings), len(warnings)))
+    if not warnings:
+        print("引用来源: PASS")
+        return []
+    print("引用来源: WARN（数据段落需人工补充可验证来源）")
+    for paragraph in warnings:
+        preview = paragraph[:80] + ("..." if len(paragraph) > 80 else "")
+        print("  建议补来源: %s" % preview.replace("\n", " "))
+    return warnings
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -196,6 +226,7 @@ def main():
     parser.add_argument("--skip-dedup", action="store_true")
     parser.add_argument("--skip-banned", action="store_true")
     parser.add_argument("--skip-images", action="store_true")
+    parser.add_argument("--skip-citations", action="store_true")
     args = parser.parse_args()
 
     article_path = resolve_path(args.article)
@@ -216,6 +247,8 @@ def main():
     if not args.skip_banned:
         banned_path = resolve_path(args.banned_words) if args.banned_words else BANNED_WORDS_DEFAULT
         ok = banned_words_check(article_text, meta, load_banned_words(banned_path)) and ok
+    if not args.skip_citations:
+        citations_check(article_text)
     if not args.skip_dedup:
         entries = args.sources if args.sources else [str(ROOT / "references" / "private" / "archive")]
         files = collect_source_files(entries)

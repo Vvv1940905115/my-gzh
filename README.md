@@ -1,8 +1,8 @@
 # my-gzh 公众号内容工作台
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue) ![Dependencies](https://img.shields.io/badge/核心流程-仅标准库-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue) ![Dependencies](https://img.shields.io/badge/Markdown-3.11-blue) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-一个本地优先的公众号内容生产工程：选题、写作、质检、配图、转微信 HTML、推送草稿箱。核心转换和推送脚本只依赖 Python 标准库；参考文章抓取和部分配图脚本才需要可选依赖。
+一个本地优先的公众号内容生产工程：选题、写作、质检、配图、转微信 HTML、推送草稿箱。核心转换和推送脚本使用 Python 标准库与 Markdown 3.11；参考文章抓取和部分配图脚本需要可选依赖。
 
 ## 能力概览
 
@@ -33,15 +33,19 @@ my-gzh/
 ├── config/
 │   ├── requirements.txt
 │   └── wechat-config.example.json
+├── lib/
+│   └── common.py
 ├── publish/
 │   ├── md_to_wechat.py
+│   ├── wechat_render.py
 │   └── push_wechat_draft.py
 ├── quality/
 │   ├── check_article.py
 │   └── check_assets.py
 ├── tests/
-│   └── test_contracts.py
-├── image/
+│   ├── test_contracts.py
+│   └── test_quality_and_render.py
+├── image/           # 图片工具与主题定义；本地素材放 images/
 │   ├── themes.json
 │   ├── make_theme_images.py
 │   ├── fetch_images.py
@@ -62,7 +66,7 @@ my-gzh/
 └── private/         # 本地私密数据，不入库
 ```
 
-> `articles/` 里的 `<slug>` 是稿件标识，例如 `ai-asking-framework`。每个稿件目录必须有一对 `article.md` 和 `meta.json`。
+> `articles/` 里的 `<slug>` 是稿件标识，例如 `ai-asking-framework`。每个稿件目录必须有一对 `article.md` 和 `meta.json`。`image/` 是脚本与主题定义目录，`images/` 才是本地图片素材目录。
 
 ## 环境准备
 
@@ -72,10 +76,11 @@ my-gzh/
 python --version
 ```
 
-核心流程不额外装依赖。以下任务按需安装：
+核心转换需要 Markdown 3.11。以下任务按需安装：
 
 | 任务 | 命令 |
 | --- | --- |
+| Markdown 转换 | `python -m pip install markdown==3.11` |
 | 抓取参考文章 | `python -m pip install requests trafilatura` |
 | 生成或裁剪本地图片 | `python -m pip install pillow` |
 | 一次性安装可选依赖 | `python -m pip install -r config/requirements.txt` |
@@ -93,7 +98,7 @@ config/wechat-config.example.json -> wechat-config.json
 2. 填入公众号后台拿到的 `app_id` 和 `app_secret`。
 3. 在公众号后台「设置与开发」->「基本配置」->「IP 白名单」加入当前公网 IP。
 
-推送脚本按以下顺序查找默认配置：
+推送脚本按以下顺序查找默认配置。第一项是 Codex 技能环境的显式路径；普通复用者通常只需第二项：
 
 1. `$CODEX_HOME/skills/wechat-publisher/config.json`
 2. 项目根目录的 `wechat-config.json`
@@ -135,7 +140,7 @@ articles/
 
 ## 写作与排版
 
-正文使用标准 Markdown，转换器额外支持：
+正文使用标准 Markdown（由 `markdown==3.11` 解析），转换器额外支持公众号特有块：
 
 - `#`、`##`、`###` 标题
 - 第一段作为导语
@@ -186,6 +191,9 @@ python quality/check_article.py --article articles/my-new-post/article.md
 - 违禁词：默认读取 `references/sensitive/banned-words.txt`
 - 文本重复：13 字连续查重和 shingle 重复率
 - 配图资产：`article.md` 与 `meta.json` 引用的本地图片是否存在
+- 引用来源：含百分比、倍数、金额、人数等数据的段落没有来源标记时输出 WARN
+
+详细规则、阈值和输出契约见 `references/public/toolchain.md`。引用来源检查只提示人工补充，可用 `--skip-citations` 显式跳过。
 
 运行 python quality/check_assets.py 可全量扫描所有稿件，检查缺失 meta、封面和正文图片，并将清单写入 out/missing-assets.txt。
 
