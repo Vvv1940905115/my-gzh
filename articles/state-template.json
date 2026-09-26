@@ -1,0 +1,20 @@
+{
+  "slug": "",
+  "title": "",
+  "topic_track": "",
+  "created_at": "",
+  "updated_at": "",
+  "current_stage": "选题",
+  "stages_completed": [],
+  "self_review_score": null,
+  "duplication_rate": null,
+  "published": false,
+  "published_at": null,
+  "metrics": {
+    "views": null,
+    "share_rate": null,
+    "wow_rate": null,
+    "title_ctr": null
+  }
+}
+

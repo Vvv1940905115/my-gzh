@@ -1,6 +1,6 @@
----
+﻿---
 name: 微信公众号文章写作
-description: 公众号主编工作流：选题、大纲、素材、初稿、自评、查重改写、配图、排版质检，也支持改稿、查违禁词、排版、发布等单项快速任务。适用于 PR、AE、AI、AI 编程、Agent、AI 趋势、AI 图生视频、插件与 APP 开发等主题。写公众号文章时必须使用本技能。
+description: 公众号主编工作流：选题、大纲、素材、初稿、自评、查重改写、配图、排版质检，也支持改稿、查违禁词、排版、发布等单项快速任务。适用于 PR、AE、AI、AI 编程、Agent、AI 趋势、AI 图生视频、插件与 APP 开发等主题。写公众号文章时必须使用本技能。NOT for 小红书/知乎/微博，仅适用于微信公众号。
 ---
 
 # 微信公众号文章写作
@@ -27,8 +27,8 @@ description: 公众号主编工作流：选题、大纲、素材、初稿、自�
 
 禁止一次加载所有参考文件。每个阶段只读取下列文件，用完即弃，不重复引用：
 
-- 选题阶段：`references/private/topic-bank/index.md` + 当前赛道映射文件；知识库缺料时读 `references/private/knowledge.md`。
-- 确认与写作阶段：`references/shared-config.md` + `references/public/style-guide.md`；标题与开头必须参考 `templates/viral-titles.md`、`templates/viral-summary.md`、`templates/viral-copy.md`；长文另读 `references/public/workflow-identities.md`。
+- 选题阶段：先读 `learned/performance.md` 最近 10 条数据记录和 `learned/hot-topics.md` 热门选题记录，再读 `references/private/topic-bank/index.md` + 当前赛道映射文件；知识库缺料时读 `references/private/knowledge.md`。
+- 确认与写作阶段：先读 `learned/rewrite-patterns.md` 查重改写技巧，再读 `references/shared-config.md` + `references/public/style-guide.md`；标题与开头必须参考 `templates/viral-titles.md`、`templates/viral-summary.md`、`templates/viral-copy.md`；长文另读 `references/public/workflow-identities.md`。
 - 质检阶段：`references/public/quality-score.md` 和 `quality/check_article.py` 报告。
 - 配图与发布阶段：`references/public/image-mode.md` + `references/public/toolchain.md`。
 

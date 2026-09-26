@@ -8,6 +8,14 @@
 
 每篇文章初稿完成并经查重改写后打分，只打这一次分。
 
+## 评分必须落盘，不接受口头分数
+
+1. `python quality/qa_report.py init --article articles/<slug>/article.md`（跑硬指标，生成骨架）
+2. 按本表逐条打分，写成 `soft.json`
+3. `python quality/qa_report.py apply --slug <slug> --scores <soft.json>`（校验通过才落盘）
+
+产物是 `articles/<slug>/qa-report.md`，抽查时看得到每一条扣分理由。硬指标维度由脚本判定，模型填报会被拒绝。详见 `references/public/stage-gate.md`。
+
 ## 评分规则
 
 - 4 个维度，每维度 0-100 分，总分 = Σ(维度分 × 权重)，满分 100。
@@ -41,9 +49,9 @@
 - 句子长短交替、段落长短不一（15 分）
 - 通读像真人聊天："换成真人不会这么说"的句子为零（15 分）
 
-## 维度 4：硬指标（权重 20%，机器输出）
+## 维度 4：硬指标（权重 20%，机器输出，模型不得填写）
 
-以下结果直接照抄 quality/check_article.py 报告：
+以下结果由 `quality/qa_report.py` 直接从 `quality/check_article.py` 采集并写入报告：
 
 - 查重：13 字片段重复率 <25% 且最长连续重复 <13 字（40 分；任一项 FAIL 本项 0 分）
 - 违禁词：banned-words.txt 高风险词 0 命中（40 分；命中即 0 分；中低风险不扣分，列入待确认）
@@ -63,6 +71,8 @@
 | 硬指标 | 20% | x | x | check_article.py 输出摘要 |
 | 总分 | | | xx/100 | |
 ```
+
+软指标三条维度必须各自给出扣分明细（扣分项、满分、实得、不少于 10 字的理由），维度得分必须与明细合计一致，否则 `qa_report.py` 拒绝落盘。
 
 ## 重写报告格式
 

@@ -4,15 +4,31 @@
 
 一个本地优先的公众号内容生产工程：选题、写作、质检、配图、转微信 HTML、推送草稿箱。核心转换和推送脚本使用 Python 标准库与 Markdown 3.11；参考文章抓取和部分配图脚本需要可选依赖。
 
+## 核心设计原则
+
+> **SKILL 管流程，脚本管判定。**
+
+「必须挂起等待确认」「必须达到 85 分」「不得编造数据」这类要求，如果只是写进提示词，执行与否全看模型自觉。所以本项目把它们拆成两半：
+
+| 环节 | 由谁负责 | 落地脚本 |
+| --- | --- | --- |
+| 流程与规范 | `SKILL.md` + `references/` | — |
+| 阶段准入（track→topic→config→draft→qa→publish） | 脚本判定，未确认即 exit 1 | `quality/stage_gate.py` |
+| 硬指标（查重 / 违禁词 / 配图资产） | 脚本判定 | `quality/check_article.py` |
+| 软指标（事实 / 风格 / 去 AI 感） | 模型评分，强制逐条扣分留痕 | `quality/qa_report.py` |
+| 发布准入 | 脚本校验 qa 已确认 | `publish/wechat_push.py` |
+
+详见 `references/public/stage-gate.md`。
+
 ## 能力概览
 
 | 目录 | 作用 |
 | --- | --- |
 | `SKILL.md` | 内容生成与质检流程规范 |
 | `templates/` | 标题、摘要、正文结构模板 |
-| `articles/` | 按稿件 slug 存放正文和元信息 |
+| `articles/` | 按稿件 slug 存放正文、元信息、阶段状态与质检报告 |
 | `publish/` | Markdown 转微信 HTML、上传图片并推送公众号草稿 |
-| `quality/` | 发布前综合质检 |
+| `quality/` | 阶段闸门、发布前综合质检、质检报告落盘 |
 | `workflow/` | AI 自动化任务编排：生成、质检、配图、预览、推送 |
 | `image/` | 抓图、候选图管理、封面裁剪、本地示意图生成 |
 | `tools/` | 参考文章抓取与只读分析 |
@@ -30,7 +46,9 @@ my-gzh/
 ├── articles/
 │   └── <slug>/
 │       ├── article.md
-│       └── meta.json
+│       ├── meta.json
+│       ├── state.json        # 阶段闸门状态
+│       └── qa-report.md      # 质检报告（硬指标脚本判定 + 软指标留痕）
 ├── config/
 │   ├── requirements.txt
 │   └── wechat-config.example.json
@@ -41,7 +59,10 @@ my-gzh/
 │   ├── wechat_render.py
 │   └── push_wechat_draft.py
 ├── quality/
-│   ├── check_article.py
+│   ├── new_article.py        # 建稿并初始化 state.json
+│   ├── stage_gate.py         # 阶段闸门：track→topic→config→draft→qa→publish
+│   ├── check_article.py      # 查重、违禁词、配图资产硬校验
+│   ├── qa_report.py          # 质检报告落盘（评分双轨）
 │   └── check_assets.py
 ├── workflow/
 │   ├── run_ai_workflow.py
@@ -179,7 +200,24 @@ articles/
 - 表格使用标准 Markdown 表格
 - 视频占位：`@video[images/xxx.mp4]`
 
-写作前先读 `SKILL.md` 和 `templates/`。质量评分以 `quality/check_article.py` 的硬指标输出为准，结合 `references/public/quality-score.md` 的四维权重评估。
+写作前先读 `SKILL.md` 和 `templates/`。质量评分以 `quality/check_article.py` 的硬指标输出为准，结合 `references/public/quality-score.md` 的四维权重评估，最终落盘到 `articles/<slug>/qa-report.md`。
+
+## 阶段闸门
+
+新稿件必须由 `quality/new_article.py` 创建，它会一并生成 `articles/<slug>/state.json`：
+
+```text
+python quality/new_article.py --slug my-new-post --title "文章标题" --track "AI工具"
+python quality/stage_gate.py confirm --slug my-new-post --stage track --value "AI工具"
+python quality/stage_gate.py confirm --slug my-new-post --stage topic --value "<主题>" --note "热点事件+出处"
+python quality/stage_gate.py confirm --slug my-new-post --stage config --value "1500-2000字|深度干货"
+python quality/stage_gate.py confirm --slug my-new-post --stage draft
+python quality/stage_gate.py show --slug my-new-post
+```
+
+前置阶段未确认时，`check_article.py`、`qa_report.py`、`wechat_push.py` 会直接退出并提示缺哪个阶段。
+`--gate strict` 连「没有 state.json 的遗留稿件」也一起阻断；`--gate off` 显式跳过。
+全自动链路（task.json / workflow）用 `quality/new_article.py --auto`，直接确认 track/topic/config。
 
 ## 生成预览 HTML
 
@@ -226,6 +264,19 @@ python quality/check_article.py --article articles/my-new-post/article.md
 详细规则、阈值和输出契约见 `references/public/toolchain.md`。引用来源检查只提示人工补充，可用 `--skip-citations` 显式跳过。
 
 运行 python quality/check_assets.py 可全量扫描所有稿件，检查缺失 meta、封面和正文图片，并将清单写入 out/missing-assets.txt。
+
+### 质检报告（评分双轨 + 留痕）
+
+```text
+python quality/qa_report.py init  --article articles/my-new-post/article.md
+python quality/qa_report.py apply --slug my-new-post --scores soft.json
+python quality/qa_report.py show  --slug my-new-post
+```
+
+- 硬指标（查重 / 违禁词 / 配图资产）由脚本判定，模型不得填写。
+- 软指标（事实准确 / 风格规范 / 去 AI 感）由模型评分，但必须逐条给出扣分明细；理由少于 10 字、或维度得分与明细合计不一致时，脚本拒绝落盘。
+- 报告写入 `articles/my-new-post/qa-report.md`，总分 ≥85 且硬指标全 PASS 时才自动确认 qa 阶段，发布脚本才放行。
+- `soft.json` 契约见 `references/public/stage-gate.md`。
 
 可用参数：
 
@@ -437,17 +488,21 @@ out/workflow-logs/<run_id>.json
 ## 常用流程
 
 ```text
-1) 明确选题和目标读者
-2) 读 SKILL.md、templates/ 和 references/public/
-3) 写 articles/<slug>/article.md 与 articles/<slug>/meta.json
-4) 准备或确认 images/ 下的图片
-5) python quality/check_article.py --article articles/<slug>/article.md
-6) python quality/check_assets.py
-7) python publish/md_to_wechat.py --article articles/<slug>/article.md --meta articles/<slug>/meta.json
-8) 浏览器检查 out/<slug>.wechat.html
-9) python publish/push_wechat_draft.py --article articles/<slug>/article.md
-10) 到公众号后台人工确认草稿
-11) 确认无误后，在终端输入 y 清理本地推送记录
+1) python quality/new_article.py --slug <slug> --title "标题" --track "赛道"
+2) 依次确认 track / topic / config（quality/stage_gate.py confirm）
+3) 读 SKILL.md、templates/ 和 references/public/（topic 阶段必读 trend-tracking.md）
+4) 写 articles/<slug>/article.md 与 articles/<slug>/meta.json
+5) python quality/stage_gate.py confirm --slug <slug> --stage draft
+6) 准备或确认 images/ 下的图片
+7) python quality/check_article.py --article articles/<slug>/article.md
+8) python quality/qa_report.py init --article articles/<slug>/article.md
+9) python quality/qa_report.py apply --slug <slug> --scores soft.json
+10) python quality/check_assets.py
+11) python publish/md_to_wechat.py --article articles/<slug>/article.md --meta articles/<slug>/meta.json
+12) 浏览器检查 out/<slug>.wechat.html
+13) python publish/push_wechat_draft.py --article articles/<slug>/article.md
+14) 到公众号后台人工确认草稿
+15) 确认无误后，在终端输入 y 清理本地推送记录
 ```
 
 ## 常见问题

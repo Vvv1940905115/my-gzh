@@ -39,6 +39,7 @@ from md_to_wechat import (  # noqa: E402
     render_article,
 )
 from quality.new_article import create_article, safe_slug  # noqa: E402
+from quality.stage_gate import confirm as gate_confirm  # noqa: E402
 
 
 class WorkflowError(RuntimeError):
@@ -120,6 +121,9 @@ def prepare_article(task, content, force=False):
         cover="",
         tags=task.get("tags", []),
         force=force,
+        # 全自动链路：task.json 就是确认单，直接确认 track/topic/config
+        auto=True,
+        track=task.get("track", ""),
     )
     article_file = result["article"]
     meta_file = result["meta"]
@@ -157,12 +161,18 @@ def prepare_article(task, content, force=False):
         json.dumps(meta, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+    try:
+        gate_confirm(result["slug"], "draft", value="workflow 生成初稿",
+                     note="run_ai_workflow.py：正文与封面已落盘")
+    except SystemExit:
+        pass
     return {
         "article_file": article_file,
         "meta_file": meta_file,
         "cover": cover,
         "meta": meta,
         "content": content,
+        "slug": result["slug"],
     }
 
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Business flow for pushing a rendered article into the WeChat draft box."""
 
@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 sys.dont_write_bytecode = True
 from pathlib import Path
@@ -42,6 +43,8 @@ from wechat_upload import (  # noqa: E402
     upload_cover,
     upload_video,
 )
+from quality.stage_gate import require as gate_require  # noqa: E402
+from quality.stage_gate import slug_of as gate_slug  # noqa: E402
 
 
 def default_config_paths():
@@ -404,6 +407,18 @@ def push_draft(
     else:
         print("Interactive review skipped; local push records were kept.")
 
+    slug = article_file.parent.name
+    print(f"\nRecording publish metrics for '{slug}'...")
+    pp = subprocess.run(
+        [sys.executable, str(ROOT / "quality" / "post_publish.py"),
+         "--slug", slug, "--views", "0"],
+        capture_output=True, text=True, cwd=str(ROOT), encoding="utf-8",
+    )
+    if pp.returncode == 0:
+        print(pp.stdout.strip())
+    else:
+        print(f"WARNING: post_publish failed (exit {pp.returncode}): {pp.stderr.strip()}")
+
     return {
         "record_stem": record_stem,
         "article_file": str(article_file),
@@ -438,7 +453,15 @@ def main():
     parser.add_argument("--delete-draft-id", default=None)
     parser.add_argument("--dry-run", action="store_true",
                         help="Render HTML and validate images without calling the WeChat API.")
+    parser.add_argument("--gate", choices=("auto", "strict", "off"), default="auto",
+                        help="阶段闸门：auto=无 state.json 时放行，strict=无 state.json 也阻断，off=跳过闸门")
     args = parser.parse_args()
+    if args.gate != "off":
+        gate_require(
+            gate_slug(args.article or (ROOT / "article.md")),
+            "publish",
+            strict=(args.gate == "strict"),
+        )
     push_draft(
         article=args.article,
         meta=args.meta,

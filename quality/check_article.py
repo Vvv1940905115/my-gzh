@@ -17,8 +17,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+_QUALITY_DIR = Path(__file__).resolve().parent
+if str(_QUALITY_DIR) not in sys.path:
+    sys.path.insert(0, str(_QUALITY_DIR))
+
 from lib.common import default_meta_for  # noqa: E402
 from lib.common import resolve_path as _resolve_path  # noqa: E402
+from stage_gate import require as _gate_require  # noqa: E402
+from stage_gate import slug_of as _slug_of  # noqa: E402
 
 RUN_LIMIT_DEFAULT = 13
 RATE_LIMIT_DEFAULT = 25.0
@@ -233,11 +239,15 @@ def main():
     parser.add_argument("--skip-banned", action="store_true")
     parser.add_argument("--skip-images", action="store_true")
     parser.add_argument("--skip-citations", action="store_true")
+    parser.add_argument("--gate", choices=("auto", "strict", "off"), default="auto",
+                        help="阶段闸门：auto=无 state.json 时放行，strict=无 state.json 也阻断，off=跳过闸门")
     args = parser.parse_args()
 
     article_path = resolve_path(args.article)
     if not article_path.exists():
         sys.exit("Article file not found: %s" % article_path)
+    if args.gate != "off":
+        _gate_require(_slug_of(article_path), "qa", strict=(args.gate == "strict"))
     meta_path = resolve_path(args.meta) if args.meta else default_meta_for(article_path)
     meta = None
     if meta_path.exists():

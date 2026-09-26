@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "slug": "workflow-push",
+  "created_at": "2026-09-26T14:28:57",
+  "updated_at": "2026-09-26T14:28:57",
+  "stage": "qa",
+  "mode": "auto",
+  "stages": {
+    "track": {
+      "confirmed": true,
+      "value": "",
+      "at": "2026-09-26T14:28:57",
+      "note": "task.json 提供完整参数"
+    },
+    "topic": {
+      "confirmed": true,
+      "value": "由上游任务参数提供",
+      "at": "2026-09-26T14:28:57",
+      "note": "task.json 提供完整参数"
+    },
+    "config": {
+      "confirmed": true,
+      "value": "由上游任务参数提供",
+      "at": "2026-09-26T14:28:57",
+      "note": "task.json 提供完整参数"
+    },
+    "draft": {
+      "confirmed": true,
+      "value": "workflow 生成初稿",
+      "at": "2026-09-26T14:28:57",
+      "note": "run_ai_workflow.py：正文与封面已落盘"
+    },
+    "qa": {
+      "confirmed": false,
+      "value": null,
+      "at": null,
+      "note": null
+    },
+    "publish": {
+      "confirmed": false,
+      "value": null,
+      "at": null,
+      "note": null
+    }
+  },
+  "rewrites": 0,
+  "history": [
+    {
+      "stage": "track",
+      "action": "init",
+      "at": "2026-09-26T14:28:57",
+      "note": "task.json 提供完整参数"
+    },
+    {
+      "stage": "draft",
+      "action": "confirm",
+      "value": "workflow 生成初稿",
+      "at": "2026-09-26T14:28:57",
+      "note": "run_ai_workflow.py：正文与封面已落盘"
+    }
+  ]
+}
