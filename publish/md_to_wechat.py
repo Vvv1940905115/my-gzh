@@ -20,10 +20,15 @@ import html
 import json
 import os
 import re
+import sys
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from lib.common import default_meta_for  # noqa: E402
 
 # ---- Typography palette (WeChat-safe, inline) -------------------------------
 PARAGRAPH_STYLE = (
@@ -137,16 +142,6 @@ def load_json(path):
             return json.load(handle)
     except FileNotFoundError:
         return {}
-
-
-def default_meta_for(article_path):
-    """Infer the matching meta file: article-foo.md -> meta-foo.json."""
-    path = Path(article_path)
-    if path.name == "article.md":
-        return path.with_name("meta.json")
-    if path.name.startswith("article"):
-        return path.with_name("meta" + path.stem[len("article") :] + ".json")
-    return path.with_name("meta.json")
 
 
 def safe_slug(value):

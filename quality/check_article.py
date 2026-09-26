@@ -13,32 +13,23 @@ from difflib import SequenceMatcher
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from lib.common import default_meta_for  # noqa: E402
+from lib.common import resolve_path as _resolve_path  # noqa: E402
+
 RUN_LIMIT_DEFAULT = 13
 RATE_LIMIT_DEFAULT = 25.0
 BANNED_WORDS_DEFAULT = ROOT / "references" / "sensitive" / "banned-words.txt"
 
 
 def resolve_path(p):
-    path = Path(p)
-    if not path.is_absolute():
-        cand = Path.cwd() / path
-        if cand.exists():
-            return cand.resolve()
-        path = ROOT / path
-    return path
+    return _resolve_path(p, ROOT)
 
 
 def read_text(path):
     return path.read_bytes().decode("utf-8-sig", errors="replace")
-
-
-def default_meta_for(article_path):
-    path = article_path
-    if path.name == "article.md":
-        return path.with_name("meta.json")
-    if path.name.startswith("article"):
-        return path.with_name("meta" + path.stem[len("article"):] + ".json")
-    return path.with_name("meta.json")
 
 
 def normalize(text):

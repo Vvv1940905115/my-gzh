@@ -12,6 +12,13 @@ import urllib.request
 import uuid
 from pathlib import Path
 
+_PUBLISH_DIR = Path(__file__).resolve().parent
+_PROJECT_ROOT = _PUBLISH_DIR.parent
+for _path in (str(_PUBLISH_DIR), str(_PROJECT_ROOT)):
+    if _path not in sys.path:
+        sys.path.insert(0, _path)
+
+from lib.common import resolve_path as _resolve_path  # noqa: E402
 from md_to_wechat import (
     ROOT,
     article_slug,
@@ -247,10 +254,7 @@ def upload_body_image(token, image_path):
 
 def resolve_path(raw, default_name=None):
     """Resolve a user-supplied path: absolute as-is, else CWD, else project root."""
-    path = Path(raw) if raw else ROOT / default_name
-    if not path.is_absolute() and not path.exists() and (ROOT / path).exists():
-        path = ROOT / path
-    return path
+    return _resolve_path(raw, ROOT, default_name)
 
 
 def draft_id_path(record_stem):
