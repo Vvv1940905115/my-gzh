@@ -71,6 +71,31 @@ def test_quality(case):
         with_source = quality.citation_warnings("平台新增了 1200 万人，来源：官网报告。")
         case.check("data paragraph without source warns", missing_source == ["平台新增了 1200 万人。"], str(missing_source))
         case.check("data paragraph with source passes", with_source == [], str(with_source))
+
+        citation_cases = [
+            ("增长了三倍", "Chinese numeral + multiplier"),
+            ("突破千万用户", "Breaking through 10M"),
+            ("占全球市场一半", "Half of global market"),
+            ("收入达到 5000 万", "Revenue 50M"),
+            ("五成用户选择了", "50% of users"),
+            ("成本降至 2 亿美元", "Cost down to 200M USD"),
+            ("翻了十番", "Multiplied by 2^10"),
+            ("提升了 20 个点", "20 percentage points"),
+            ("将近一半的用户", "Nearly half"),
+            ("接近三成的受访者", "Nearly 30%"),
+            ("超过百万的播放量", "Over 1M views"),
+        ]
+        for cite_text, cite_desc in citation_cases:
+            cite_result = quality.citation_warnings(cite_text)
+            case.check(
+                f"citation catches {cite_desc}",
+                len(cite_result) > 0,
+                f"Pattern '{cite_text}' was MISSED (got {cite_result})"
+            )
+        case.check(
+            "citation no false positive on prose",
+            quality.citation_warnings("这篇文章没有数据，只是感想。") == [],
+        )
     finally:
         quality.ROOT = old_root
         shutil.rmtree(root, ignore_errors=True)
