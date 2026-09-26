@@ -51,8 +51,7 @@ my-gzh/
 │       ├── state.json        # 阶段闸门状态
 │       └── qa-report.md      # 质检报告（硬指标脚本判定 + 软指标留痕）
 ├── config/
-│   ├── requirements.txt
-│   └── wechat-config.example.json
+│   └── requirements.txt
 ├── lib/
 │   └── common.py
 ├── learned/
@@ -144,16 +143,16 @@ pip install -r config/requirements.lock
 
 只在把文章同步到公众号草稿箱时需要配置。手动复制正文可跳过。
 
-1. 复制模板：
+1. 设置环境变量（推荐，凭证不落盘）：
 
-```text
-config/wechat-config.example.json -> wechat-config.json
+```powershell
+$env:WECHAT_APP_ID = '你的AppID'
+$env:WECHAT_APP_SECRET = '你的AppSecret'
 ```
 
-2. 填入公众号后台拿到的 `app_id` 和 `app_secret`。
-3. 在公众号后台「设置与开发」->「基本配置」->「IP 白名单」加入当前公网 IP。
+2. 在公众号后台「设置与开发」->「基本配置」->「IP 白名单」加入当前公网 IP。
 
-推送脚本按以下顺序查找默认配置。第一项是 Codex 技能环境的显式路径；普通复用者通常只需第二项：
+推送脚本优先读取环境变量 `WECHAT_APP_ID` 和 `WECHAT_APP_SECRET`。如果环境变量未设置，会按以下顺序查找配置文件（不推荐）：
 
 1. `$CODEX_HOME/skills/wechat-publisher/config.json`
 2. 项目根目录的 `wechat-config.json`
@@ -164,7 +163,7 @@ config/wechat-config.example.json -> wechat-config.json
 python publish/push_wechat_draft.py --config 路径/config.json
 ```
 
-> `wechat-config.json` 含 AppSecret，已被 `.gitignore` 忽略。不要提交、截图或分享。如怀疑泄露，立即在公众号后台重置 AppSecret。
+> 不要将凭证写入文件、提交到 git、截图或分享。如怀疑泄露，立即在公众号后台重置 AppSecret。
 
 ## 稿件结构
 

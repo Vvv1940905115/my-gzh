@@ -56,6 +56,10 @@ def default_config_paths():
 
 
 def load_config():
+    app_id = os.environ.get("WECHAT_APP_ID", "").strip()
+    app_secret = os.environ.get("WECHAT_APP_SECRET", "").strip()
+    if app_id and app_secret:
+        return {"app_id": app_id, "app_secret": app_secret, "path": "env"}
     for path in default_config_paths():
         if path.exists():
             data = json.loads(path.read_text(encoding="utf-8"))
@@ -75,10 +79,12 @@ def load_config():
                 "Fill in app_id and app_secret, then run again."
             )
     raise SystemExit(
-        "No WeChat config found. Create one of:\n"
+        "No WeChat credentials found. Set environment variables:\n"
+        "  WECHAT_APP_ID=你的AppID\n"
+        "  WECHAT_APP_SECRET=你的AppSecret\n"
+        "Or create a config file (not recommended):\n"
         "- ~/.codex/skills/wechat-publisher/config.json\n"
-        "- my-gzh/wechat-config.json\n"
-        "with {\"app_id\": \"...\", \"app_secret\": \"...\"}."
+        "- my-gzh/wechat-config.json"
     )
 
 
