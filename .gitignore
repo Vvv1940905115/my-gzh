@@ -12,6 +12,9 @@ private/
 references/private/
 references/sensitive/
 
+# 本地备份归档（backup_private.sh 产物）
+backups/
+
 # Python 虚拟环境
 .venv/
 venv/

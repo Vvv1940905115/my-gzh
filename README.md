@@ -337,6 +337,23 @@ python tools/analyze_reference.py --slug my-new-post
 | `references/private/` | 知识库、选题库、历史归档 | 不入库 |
 | `references/sensitive/` | 违禁词、平台规则 | 不入库 |
 
+## 数据备份
+
+`references/private/` 与 `references/sensitive/` 不入库，只存在于本机磁盘；磁盘一旦损坏，归档、选题库和知识库会直接丢失。请定期执行：
+
+```text
+bash backup_private.sh               # Linux/macOS/Git Bash；--encrypt 用 AES-256 加密
+powershell -File backup_private.ps1  # Windows 无 bash 时的打包方案（用系统自带 tar）
+```
+
+加密功能需要 openssl 环境（Git Bash、Linux、macOS）。加密归档的还原命令：
+
+```text
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in private-<时间戳>.tar.gz.enc -out restore.tar.gz
+```
+
+生成后把归档复制到云盘、私有 Git 仓库或另一台机器。`backups/` 已在 .gitignore 中排除，建议每周至少备份一次，发布重要文章后立即备份。
+
 ## 常用流程
 
 ```text
