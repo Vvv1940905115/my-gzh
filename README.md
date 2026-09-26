@@ -194,6 +194,16 @@ out/<slug>.wechat.fragment.html
 
 浏览器打开预览 HTML，点页面顶部的「复制正文」，再粘贴到公众号后台。
 
+## 开发者设置
+
+启用 pre-commit hook（每次 commit 自动跑测试）：
+
+```text
+git config core.hooksPath .githooks
+```
+
+只需要在新 clone 的环境里执行一次。CI 会在 GitHub Actions 上自动运行，不受本地配置影响。
+
 ## 发布前质检
 
 ```text

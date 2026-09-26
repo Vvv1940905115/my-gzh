@@ -7,6 +7,7 @@ import json
 import os
 import re
 import sys
+sys.dont_write_bytecode = True
 import time
 import urllib.error
 import urllib.parse
@@ -74,6 +75,11 @@ def save_token_to_cache(token, expires_in=7200):
     TOKEN_CACHE_FILE.write_text(json.dumps(data), encoding="utf-8")
 
 
+def invalidate_token_cache():
+    """Remove a stale access token so the next run fetches a fresh one."""
+    TOKEN_CACHE_FILE.unlink(missing_ok=True)
+
+
 def default_config_paths():
     codex_home = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
     return [
@@ -112,6 +118,12 @@ def load_config():
 def check_error(data):
     errcode = data.get("errcode")
     if errcode is not None and errcode != 0:
+        if errcode in (40001, 42001):
+            invalidate_token_cache()
+            raise RuntimeError(
+                f"WeChat API error {errcode}: {data.get('errmsg', 'unknown')}\n"
+                "Stale access token detected and cache cleared. Re-run the script to get a fresh token."
+            )
         raise RuntimeError(f"WeChat API error {errcode}: {data.get('errmsg', 'unknown')}")
 
 

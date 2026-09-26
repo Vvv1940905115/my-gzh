@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import sys
+sys.dont_write_bytecode = True
 import tempfile
 from pathlib import Path
 
